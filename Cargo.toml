@@ -1,0 +1,27 @@
+[package]
+name = "crypto-pay-api"
+version = "0.1.0"
+edition = "2021"
+description = "A Rust client library for Crypto Pay API provided by Telegram CryptoBot"
+license = "MIT"
+
+[features]
+default = []
+axum-webhook = ["dep:axum", "dep:tower"]
+
+[dependencies]
+reqwest = { version = "0.12.12", features = ["json"] }
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.137"
+tokio = { version = "1.43.0", features = ["full"] }
+thiserror = "2.0.11"
+chrono = { version = "0.4.39", features = ["serde"] }
+
+# Optional dependencies for axum integration
+axum = { version = "0.8.1", optional = true }
+tower = { version = "0.5.2", optional = true }
+async-trait = "0.1.85"
+
+[dev-dependencies]
+mockito = "1.6.1"
+
