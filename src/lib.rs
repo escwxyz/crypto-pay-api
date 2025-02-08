@@ -1,20 +1,19 @@
-pub mod balance;
-pub mod check;
-pub mod client;
-pub mod error;
-pub mod exchange;
-pub mod invoice;
-pub mod model;
-pub mod stats;
-pub mod traits;
-pub mod transfer;
-pub mod webhook;
+mod api;
+mod client;
+mod error;
+mod models;
+mod serde_helpers;
+mod validation;
+
+#[cfg(feature = "axum-webhook")]
+mod webhook;
+
+pub mod prelude;
+pub use prelude::*;
 
 mod test_utils;
 
-pub use client::CryptoBot;
-pub use error::CryptoBotError;
-
+#[cfg(feature = "axum-webhook")]
 pub use webhook::{WebhookHandler, WebhookResponse, WebhookUpdate};
 
 #[cfg(feature = "axum-webhook")]

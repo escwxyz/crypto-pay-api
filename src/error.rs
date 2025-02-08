@@ -1,20 +1,63 @@
-use reqwest::header::InvalidHeaderValue;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CryptoBotError {
     #[error("Invalid header value: {0}")]
-    InvalidHeaderValue(InvalidHeaderValue),
+    InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
+
     #[error("HTTP client error: {0}")]
     HttpError(#[from] reqwest::Error),
-    #[error("API error: {code} - {name}")]
-    ApiError { code: i32, name: String },
-    #[error("Webhook error: {0}")]
-    WebhookError(String),
+
+    #[error("API error: {code} - {message}")]
+    ApiError {
+        code: i32,
+        message: String,
+        details: Option<serde_json::Value>,
+    },
+
+    #[error("Validation error: {kind} - {message}")]
+    ValidationError {
+        kind: ValidationErrorKind,
+        message: String,
+        field: Option<String>,
+    },
+
+    #[error("Webhook error: {kind} - {message}")]
+    WebhookError {
+        kind: WebhookErrorKind,
+        message: String,
+    },
+
+    #[error("No result returned from API")]
+    NoResult,
 }
 
-impl From<InvalidHeaderValue> for CryptoBotError {
-    fn from(error: InvalidHeaderValue) -> Self {
-        CryptoBotError::InvalidHeaderValue(error)
+#[derive(Debug)]
+pub enum ValidationErrorKind {
+    Format,
+    Range,
+    Currency,
+    Missing,
+    Invalid,
+}
+
+#[derive(Debug)]
+pub enum WebhookErrorKind {
+    InvalidSignature,
+    InvalidPayload,
+    DeserializationError,
+}
+
+impl std::fmt::Display for ValidationErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
+
+impl std::fmt::Display for WebhookErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+pub type CryptoBotResult<T> = std::result::Result<T, CryptoBotError>;

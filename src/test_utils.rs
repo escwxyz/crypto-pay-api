@@ -19,7 +19,10 @@ pub mod test_utils {
         where
             F: std::future::Future<Output = T>,
         {
-            self.runtime.block_on(future)
+            println!("Starting to run test");
+            let result = self.runtime.block_on(future);
+            println!("Test completed");
+            result
         }
     }
 }
