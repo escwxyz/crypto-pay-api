@@ -3,6 +3,25 @@ use serde::{de, Deserialize, Deserializer};
 
 use crate::{CryptoCurrencyCode, CurrencyCode, FiatCurrencyCode};
 
+pub fn serialize_comma_separated_list<S>(
+    ids: &Option<Vec<u64>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    if let Some(ids) = ids {
+        let str_value = ids
+            .iter()
+            .map(|id| id.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        serializer.serialize_str(&str_value)
+    } else {
+        unreachable!("should be skipped by skip_serializing_if")
+    }
+}
+
 /// Deserialize a number to a Decimal
 pub fn deserialize_decimal_from_number<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where

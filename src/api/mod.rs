@@ -54,7 +54,7 @@ pub trait TransferAPI {
 #[async_trait]
 pub trait InvoiceAPI {
     async fn create_invoice(&self, params: &CreateInvoiceParams) -> CryptoBotResult<Invoice>;
-    async fn delete_invoice(&self, invoice_id: i64) -> CryptoBotResult<bool>;
+    async fn delete_invoice(&self, invoice_id: u64) -> CryptoBotResult<bool>;
     async fn get_invoices(
         &self,
         params: Option<&GetInvoicesParams>,
