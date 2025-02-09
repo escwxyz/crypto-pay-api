@@ -3,11 +3,14 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::ValidationErrorKind,
+    error::{CryptoBotError, CryptoBotResult, ValidationErrorKind},
+    utils::{
+        deserialize_decimal_from_string, serialize_comma_separated_list,
+        serialize_decimal_to_string,
+    },
     validation::{
         validate_amount, validate_count, ContextValidate, FieldValidate, ValidationContext,
     },
-    CryptoBotError,
 };
 
 use super::CryptoCurrencyCode;
@@ -27,7 +30,7 @@ pub struct Transfer {
     pub asset: CryptoCurrencyCode,
 
     /// Amount of the transfer in float.
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_decimal_from_string")]
     pub amount: Decimal,
 
     /// Status of the transfer, can only be “completed”.
@@ -58,7 +61,7 @@ pub struct TransferParams {
     /// Amount of the transfer in float.
     /// The minimum and maximum amount limits for each of the supported assets roughly correspond to 1-25000 USD.
     /// Use getExchangeRates to convert amounts. For example: 125.50
-    #[serde(serialize_with = "crate::serde_helpers::serialize_decimal_to_string")]
+    #[serde(serialize_with = "serialize_decimal_to_string")]
     pub amount: Decimal,
 
     /// Random UTF-8 string unique per transfer for idempotent requests.
@@ -79,7 +82,7 @@ pub struct TransferParams {
 }
 
 impl FieldValidate for TransferParams {
-    fn validate(&self) -> crate::CryptoBotResult<()> {
+    fn validate(&self) -> CryptoBotResult<()> {
         // spend id
         if self.spend_id.chars().count() > 64 {
             return Err(CryptoBotError::ValidationError {
@@ -105,10 +108,7 @@ impl FieldValidate for TransferParams {
 
 #[async_trait::async_trait]
 impl ContextValidate for TransferParams {
-    async fn validate_with_context(
-        &self,
-        context: &ValidationContext,
-    ) -> crate::CryptoBotResult<()> {
+    async fn validate_with_context(&self, context: &ValidationContext) -> CryptoBotResult<()> {
         validate_amount(&self.amount, &self.asset, context).await
     }
 }
@@ -124,7 +124,7 @@ pub struct GetTransfersParams {
 
     /// Optional. List of transfer IDs separated by comma.
     #[serde(
-        serialize_with = "crate::serde_helpers::serialize_comma_separated_list",
+        serialize_with = "serialize_comma_separated_list",
         skip_serializing_if = "GetTransfersParams::should_skip_transfer_ids"
     )]
     pub transfer_ids: Option<Vec<u64>>,
@@ -152,7 +152,7 @@ impl GetTransfersParams {
 }
 
 impl FieldValidate for GetTransfersParams {
-    fn validate(&self) -> crate::CryptoBotResult<()> {
+    fn validate(&self) -> CryptoBotResult<()> {
         if let Some(count) = &self.count {
             validate_count(*count)?;
         }

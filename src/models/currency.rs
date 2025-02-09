@@ -1,3 +1,4 @@
+use crate::utils::deserialize_currency_code;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -6,7 +7,7 @@ pub struct Currency {
     pub is_stablecoin: bool,
     pub is_fiat: bool,
     pub name: String,
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_currency_code")]
+    #[serde(deserialize_with = "deserialize_currency_code")]
     pub code: CurrencyCode,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,

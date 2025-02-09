@@ -1,3 +1,5 @@
+use crate::utils::deserialize_decimal_from_string;
+
 use super::CryptoCurrencyCode;
 use rust_decimal::Decimal;
 use serde::Deserialize;
@@ -9,10 +11,10 @@ pub struct Balance {
     pub currency_code: CryptoCurrencyCode,
 
     /// Total available amount in float.
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_decimal_from_string")]
     pub available: Decimal,
 
     /// Unavailable amount currently is on hold in float.
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_decimal_from_string")]
     pub onhold: Decimal,
 }

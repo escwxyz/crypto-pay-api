@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 
 use crate::{
+    error::CryptoBotError,
     models::{APIMethod, Check, CreateCheckParams, GetChecksParams},
     validation::{ContextValidate, FieldValidate, ValidationContext},
-    APIEndpoint, CryptoBot, CryptoBotError, DeleteCheckParams, GetChecksResponse, Method,
+    APIEndpoint, CryptoBot, DeleteCheckParams, GetChecksResponse, Method,
 };
 
 use super::{CheckAPI, ExchangeRateAPI};
@@ -93,7 +94,7 @@ mod tests {
     use rust_decimal_macros::dec;
     use serde_json::json;
 
-    use crate::{test_utils::test_utils::TestContext, CryptoCurrencyCode};
+    use crate::{utils::test_utils::TestContext, CryptoCurrencyCode};
 
     use super::*;
 

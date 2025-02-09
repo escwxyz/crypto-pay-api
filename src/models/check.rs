@@ -3,11 +3,16 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    error::CryptoBotError,
+    error::CryptoBotResult,
     error::ValidationErrorKind,
+    utils::{
+        deserialize_decimal_from_string, serialize_comma_separated_list,
+        serialize_decimal_to_string,
+    },
     validation::{
         validate_amount, validate_count, ContextValidate, FieldValidate, ValidationContext,
     },
-    CryptoBotError, CryptoBotResult,
 };
 
 use super::CryptoCurrencyCode;
@@ -24,7 +29,7 @@ pub struct Check {
     pub asset: CryptoCurrencyCode,
 
     /// Amount of the check in float.
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_decimal_from_string")]
     pub amount: Decimal,
 
     /// URL should be provided to the user to activate the check.
@@ -55,7 +60,7 @@ pub struct CreateCheckParams {
     pub asset: CryptoCurrencyCode,
 
     /// Amount of the check in float. For example: 125.50
-    #[serde(serialize_with = "crate::serde_helpers::serialize_decimal_to_string")]
+    #[serde(serialize_with = "serialize_decimal_to_string")]
     pub amount: Decimal,
 
     /// Optional. ID of the user who will be able to activate the check.
@@ -98,7 +103,7 @@ pub struct GetChecksParams {
 
     /// Optional. List of check IDs separated by comma.
     #[serde(
-        serialize_with = "crate::serde_helpers::serialize_comma_separated_list",
+        serialize_with = "serialize_comma_separated_list",
         skip_serializing_if = "GetChecksParams::should_skip_check_ids"
     )]
     pub check_ids: Option<Vec<u64>>,
@@ -151,7 +156,7 @@ mod tests {
 
     use rust_decimal_macros::dec;
 
-    use crate::{error::ValidationErrorKind, CryptoBotError};
+    use crate::{error::CryptoBotError, error::ValidationErrorKind};
 
     use super::*;
 

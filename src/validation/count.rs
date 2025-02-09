@@ -1,4 +1,4 @@
-use crate::{error::ValidationErrorKind, CryptoBotError, CryptoBotResult};
+use crate::{error::CryptoBotError, error::CryptoBotResult, error::ValidationErrorKind};
 
 pub fn validate_count(count: u16) -> CryptoBotResult<()> {
     if !(1..=1000).contains(&count) {

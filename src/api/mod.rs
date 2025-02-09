@@ -8,12 +8,13 @@ mod transfer;
 use async_trait::async_trait;
 
 use crate::{
+    error::CryptoBotResult,
     models::{
         AppStats, Balance, Check, CreateCheckParams, CreateInvoiceParams, Currency, ExchangeRate,
         GetChecksParams, GetInvoicesParams, GetMeResponse, GetStatsParams, Invoice, Transfer,
         TransferParams,
     },
-    CryptoBotResult, GetTransfersParams,
+    GetTransfersParams,
 };
 
 #[async_trait]

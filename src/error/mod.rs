@@ -46,6 +46,7 @@ pub enum WebhookErrorKind {
     InvalidSignature,
     InvalidPayload,
     DeserializationError,
+    Expired,
 }
 
 impl std::fmt::Display for ValidationErrorKind {

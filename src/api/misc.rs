@@ -1,7 +1,8 @@
 use crate::{
+    error::CryptoBotResult,
     models::{APIMethod, AppStats, Currency, GetMeResponse, GetStatsParams},
     validation::FieldValidate,
-    APIEndpoint, CryptoBot, CryptoBotResult, Method,
+    APIEndpoint, CryptoBot, Method,
 };
 use async_trait::async_trait;
 
@@ -67,8 +68,8 @@ mod tests {
     use serde_json::json;
 
     use crate::{
-        api::MiscAPI, test_utils::test_utils::TestContext, CryptoBot, CryptoCurrencyCode,
-        CurrencyCode, GetStatsParams,
+        api::MiscAPI, utils::test_utils::TestContext, CryptoBot, CryptoCurrencyCode, CurrencyCode,
+        GetStatsParams,
     };
 
     impl TestContext {

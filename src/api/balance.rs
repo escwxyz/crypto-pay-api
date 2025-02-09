@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 
 use crate::{
+    error::CryptoBotError,
     models::{APIMethod, Balance},
-    APIEndpoint, CryptoBot, CryptoBotError, Method,
+    APIEndpoint, CryptoBot, Method,
 };
 
 use super::BalanceAPI;
@@ -31,7 +32,7 @@ mod tests {
     use rust_decimal_macros::dec;
     use serde_json::json;
 
-    use crate::{models::CryptoCurrencyCode, test_utils::test_utils::TestContext};
+    use crate::{models::CryptoCurrencyCode, utils::test_utils::TestContext};
 
     use super::*;
 

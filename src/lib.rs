@@ -2,19 +2,22 @@ mod api;
 mod client;
 mod error;
 mod models;
-mod serde_helpers;
+mod utils;
 mod validation;
-
-#[cfg(feature = "axum-webhook")]
 mod webhook;
 
-pub mod prelude;
+pub mod prelude {
+    pub use rust_decimal::Decimal;
+
+    pub use crate::models::*;
+
+    pub use crate::api::*;
+
+    pub use crate::client::CryptoBot;
+
+    pub use crate::webhook::*;
+
+    #[cfg(feature = "axum-webhook")]
+    pub use crate::webhook::axum::webhook_middleware;
+}
 pub use prelude::*;
-
-mod test_utils;
-
-#[cfg(feature = "axum-webhook")]
-pub use webhook::{WebhookHandler, WebhookResponse, WebhookUpdate};
-
-#[cfg(feature = "axum-webhook")]
-pub use webhook::axum::webhook_middleware;

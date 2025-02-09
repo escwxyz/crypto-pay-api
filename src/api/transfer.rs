@@ -1,7 +1,8 @@
 use crate::{
+    error::CryptoBotResult,
     models::{APIMethod, Method, Transfer, TransferParams},
     validation::{ContextValidate, FieldValidate, ValidationContext},
-    APIEndpoint, CryptoBot, CryptoBotResult, GetTransfersParams, GetTransfersResponse,
+    APIEndpoint, CryptoBot, GetTransfersParams, GetTransfersResponse,
 };
 
 use super::{ExchangeRateAPI, TransferAPI};
@@ -75,7 +76,7 @@ mod tests {
 
     use crate::{
         models::{CryptoCurrencyCode, TransferStatus},
-        test_utils::test_utils::TestContext,
+        utils::test_utils::TestContext,
     };
 
     use super::*;

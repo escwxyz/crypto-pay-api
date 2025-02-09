@@ -1,5 +1,9 @@
 use crate::{
     error::{CryptoBotError, CryptoBotResult, ValidationErrorKind},
+    utils::{
+        deserialize_decimal_from_string, deserialize_optional_decimal_from_string,
+        serialize_comma_separated_list, serialize_decimal_to_string,
+    },
     validate_dependency,
     validation::{
         validate_amount, validate_count, ContextValidate, FieldValidate, ValidationContext,
@@ -33,7 +37,7 @@ pub struct Invoice {
     pub fiat: Option<FiatCurrencyCode>,
 
     /// Amount of the invoice for which the invoice was created.
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_decimal_from_string")]
     pub amount: Decimal,
 
     /// Optional. Cryptocurrency alphabetic code for which the invoice was paid. Available only if currency_type is "crypto" and status is "paid".
@@ -41,12 +45,12 @@ pub struct Invoice {
 
     /// Optional. Amount of the invoice for which the invoice was paid. Available only if currency_type is "fiat" and status is "paid".
     #[serde(default)]
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_optional_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_optional_decimal_from_string")]
     pub paid_amount: Option<Decimal>,
 
     /// Optional. The rate of the paid_asset valued in the fiat currency. Available only if the value of the field currency_type is "fiat" and the value of the field status is "paid".
     #[serde(default)]
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_optional_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_optional_decimal_from_string")]
     pub paid_fiat_rate: Option<Decimal>,
 
     /// Optional. List of assets which can be used to pay the invoice. Available only if currency_type is "fiat". Currently, can be "USDT", "TON", "BTC", "ETH", "LTC", "BNB", "TRX" and "USDC" ("JET" for testnet).
@@ -57,7 +61,7 @@ pub struct Invoice {
 
     /// Optional. Amount of service fees charged when the invoice was paid. Available only if status is "paid".
     #[serde(default)]
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_optional_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_optional_decimal_from_string")]
     pub fee_amount: Option<Decimal>,
 
     /// URL should be provided to the user to pay the invoice.
@@ -80,7 +84,7 @@ pub struct Invoice {
 
     /// Optional. Price of the asset in USD. Available only if status is "paid".
     #[serde(default)]
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_optional_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_optional_decimal_from_string")]
     pub paid_usd_rate: Option<Decimal>,
 
     /// True, if the user can add comment to the payment.
@@ -161,7 +165,7 @@ pub struct GetInvoicesParams {
 
     /// Optional. List of invoice IDs separated by comma.
     #[serde(
-        serialize_with = "crate::serde_helpers::serialize_comma_separated_list",
+        serialize_with = "serialize_comma_separated_list",
         skip_serializing_if = "GetInvoicesParams::should_skip_invoice_ids"
     )]
     pub invoice_ids: Option<Vec<u64>>,
@@ -204,31 +208,31 @@ pub struct CreateInvoiceParams {
     /// Optional. Type of the price, can be "crypto" or "fiat". Defaults to crypto.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default = "default_currency_type")]
-    pub currency_type: Option<CurrencyType>, // ! checked
+    pub currency_type: Option<CurrencyType>,
 
     /// Optional.  Required if currency_type is "crypto". Cryptocurrency alphabetic code. Supported assets: "USDT", "TON", "BTC", "ETH", "LTC", "BNB", "TRX" and "USDC".
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub asset: Option<CryptoCurrencyCode>, // ! checked
+    pub asset: Option<CryptoCurrencyCode>,
 
     /// Optional. Required if currency_type is "fiat". Fiat currency code. Supported fiat currencies: "USD", "EUR", "RUB", "BYN", "UAH", "GBP", "CNY", "KZT", "UZS", "GEL", "TRY", "AMD", "THB", "INR", "BRL", "IDR", "AZN", "AED", "PLN" and "ILS".
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub fiat: Option<FiatCurrencyCode>, // ! checked
+    pub fiat: Option<FiatCurrencyCode>,
 
     /// Optional. List of cryptocurrency alphabetic codes separated comma. Assets which can be used to pay the invoice. Available only if currency_type is "crypto". Supported assets: "USDT", "TON", "BTC", "ETH", "LTC", "BNB", "TRX" and "USDC" ("JET" for testnet). Defaults to all currencies.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub accept_asset: Option<Vec<CryptoCurrencyCode>>, // ! checked
+    pub accept_asset: Option<Vec<CryptoCurrencyCode>>,
 
     /// Amount of the invoice in float. For example: 125.50
-    #[serde(serialize_with = "crate::serde_helpers::serialize_decimal_to_string")]
-    pub amount: Decimal, // ! checked
+    #[serde(serialize_with = "serialize_decimal_to_string")]
+    pub amount: Decimal,
 
     /// Optional. Description for the invoice. User will see this description when they pay the invoice. Up to 1024 characters.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>, // ! checked
+    pub description: Option<String>,
 
     /// Optional. Text of the message which will be presented to a user after the invoice is paid. Up to 2048 characters.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub hidden_message: Option<String>, // ! checked
+    pub hidden_message: Option<String>,
 
     /// Optional. Label of the button which will be presented to a user after the invoice is paid.
     /// Supported names:
@@ -237,31 +241,31 @@ pub struct CreateInvoiceParams {
     /// openBot – "Open Bot",
     /// callback – "Return to the bot"
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub paid_btn_name: Option<PayButtonName>, // ! checked
+    pub paid_btn_name: Option<PayButtonName>,
 
     /// Optional. Required if paid_btn_name is specified. URL opened using the button which will be presented to a user after the invoice is paid. You can set any callback link (for example, a success link or link to homepage). Starts with https or http.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub paid_btn_url: Option<String>, // ! checked
+    pub paid_btn_url: Option<String>,
 
     /// Optional. Any data you want to attach to the invoice (for example, user ID, payment ID, ect).
     /// Up to 4kb.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub payload: Option<String>, // ! checked
+    pub payload: Option<String>,
 
     /// Optional. Allow a user to add a comment to the payment.
     /// Defaults to true.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub allow_comments: Option<bool>, // ! checked
+    pub allow_comments: Option<bool>,
 
     /// Optional. Allow a user to pay the invoice anonymously.
     /// Defaults to true.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub allow_anonymous: Option<bool>, // ! checked
+    pub allow_anonymous: Option<bool>,
 
     /// Optional. You can set a payment time limit for the invoice in seconds.
     /// Values between 1-2678400 are accepted.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub expires_in: Option<u32>, // ! checked
+    pub expires_in: Option<u32>,
 }
 
 fn default_currency_type() -> Option<CurrencyType> {
@@ -430,7 +434,6 @@ mod tests {
 
     use super::*;
 
-    // ! checked
     #[test]
     fn test_serialize_invoice_ids() {
         // Test with values

@@ -3,17 +3,18 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::ValidationErrorKind, validation::FieldValidate, CryptoBotError, CryptoBotResult,
+    error::CryptoBotError, error::CryptoBotResult, error::ValidationErrorKind,
+    utils::deserialize_decimal_from_number, validation::FieldValidate,
 };
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AppStats {
     /// Total volume of paid invoices in USD.
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_decimal_from_number")]
+    #[serde(deserialize_with = "deserialize_decimal_from_number")]
     pub volume: Decimal,
 
     /// Conversion of all created invoices.
-    #[serde(deserialize_with = "crate::serde_helpers::deserialize_decimal_from_number")]
+    #[serde(deserialize_with = "deserialize_decimal_from_number")]
     pub conversion: Decimal,
 
     /// The unique number of users who have paid the invoice.

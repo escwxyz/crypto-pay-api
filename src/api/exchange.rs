@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 
 use crate::{
+    error::CryptoBotResult,
     models::{APIMethod, ExchangeRate},
-    APIEndpoint, CryptoBot, CryptoBotResult, Method,
+    APIEndpoint, CryptoBot, Method,
 };
 
 use super::ExchangeRateAPI;
@@ -32,9 +33,9 @@ mod tests {
     use serde_json::json;
 
     use crate::{
-        api::InvoiceAPI, error::ValidationErrorKind, models::CryptoCurrencyCode,
-        test_utils::test_utils::TestContext, CheckAPI, CreateCheckParams, CreateInvoiceParams,
-        CryptoBotError, CurrencyType, FiatCurrencyCode, TransferAPI, TransferParams,
+        api::InvoiceAPI, error::CryptoBotError, error::ValidationErrorKind,
+        models::CryptoCurrencyCode, utils::test_utils::TestContext, CheckAPI, CreateCheckParams,
+        CreateInvoiceParams, CurrencyType, FiatCurrencyCode, TransferAPI, TransferParams,
     };
 
     use super::*;

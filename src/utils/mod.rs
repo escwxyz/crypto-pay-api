@@ -1,3 +1,7 @@
+mod serde_helpers;
+
+pub use serde_helpers::*;
+
 #[cfg(test)]
 pub mod test_utils {
     use mockito::ServerGuard;

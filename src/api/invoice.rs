@@ -1,10 +1,11 @@
 use async_trait::async_trait;
 
 use crate::{
+    error::CryptoBotError,
+    error::CryptoBotResult,
     models::{CreateInvoiceParams, GetInvoicesParams, Invoice},
     validation::{ContextValidate, FieldValidate},
-    APIEndpoint, APIMethod, CryptoBotError, CryptoBotResult, DeleteInvoiceParams,
-    GetInvoicesResponse, Method,
+    APIEndpoint, APIMethod, DeleteInvoiceParams, GetInvoicesResponse, Method,
 };
 
 use super::{ExchangeRateAPI, InvoiceAPI};
@@ -100,7 +101,7 @@ mod tests {
 
     use super::*;
     use crate::models::{CryptoCurrencyCode, CurrencyType};
-    use crate::test_utils::test_utils::TestContext;
+    use crate::utils::test_utils::TestContext;
     use crate::CryptoBot;
 
     impl TestContext {
@@ -216,7 +217,6 @@ mod tests {
         }
     }
 
-    // ! checked
     #[test]
     fn test_create_invoice() {
         let mut ctx = TestContext::new();
@@ -244,7 +244,6 @@ mod tests {
         assert_eq!(invoice.description, Some("Test invoice".to_string()));
     }
 
-    // ! checked
     #[test]
     fn test_get_invoices_without_params() {
         let mut ctx = TestContext::new();
@@ -262,7 +261,6 @@ mod tests {
         assert_eq!(invoices.len(), 1);
     }
 
-    // ! checked
     #[test]
     fn test_get_invoices_with_params() {
         let mut ctx = TestContext::new();
@@ -286,7 +284,6 @@ mod tests {
         assert_eq!(invoices[0].invoice_id, 530195);
     }
 
-    // ! checked
     #[test]
     fn test_delete_invoice() {
         let mut ctx = TestContext::new();

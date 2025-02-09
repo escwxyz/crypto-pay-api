@@ -1,17 +1,19 @@
+mod builder;
+
 use crate::{
     error::{CryptoBotError, CryptoBotResult},
     models::{APIMethod, ApiResponse, Method},
 };
 
+use builder::ClientBuilder;
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Client,
 };
 use serde::{de::DeserializeOwned, Serialize};
-use std::time::Duration;
 
-const DEFAULT_API_URL: &str = "https://pay.crypt.bot/api";
-const DEFAULT_TIMEOUT: u64 = 30;
+pub const DEFAULT_API_URL: &str = "https://pay.crypt.bot/api";
+pub const DEFAULT_TIMEOUT: u64 = 30;
 
 #[derive(Debug, Clone)]
 pub struct CryptoBot {
@@ -29,25 +31,51 @@ impl CryptoBot {
     /// * `headers` - Optional headers to be added to the request
     ///
     pub fn new(api_token: &str, headers: Option<Vec<(HeaderName, HeaderValue)>>) -> Self {
-        Self::new_with_base_url(api_token, DEFAULT_API_URL, headers)
+        Self::builder()
+            .api_token(api_token)
+            .headers(headers)
+            .build()
     }
 
+    /// Creates a new CryptoBot client instance with a custom base URL
+    ///
+    /// # Arguments
+    /// * `api_token` - The API token obtained from @CryptoBot
+    /// * `base_url` - The base URL of the API
+    /// * `headers` - Optional headers to be added to the request
+    ///
+    /// # Example
+    /// ```
+    /// use crypto_pay_api::CryptoBot;
+    ///
+    /// let client = CryptoBot::new_with_base_url("YOUR_API_TOKEN", "https://pay.crypt.bot/api", None);
+    /// ```
     pub fn new_with_base_url(
         api_token: &str,
         base_url: &str,
         headers: Option<Vec<(HeaderName, HeaderValue)>>,
     ) -> Self {
-        let client = Client::builder()
-            .timeout(Duration::from_secs(DEFAULT_TIMEOUT))
+        Self::builder()
+            .api_token(api_token)
+            .base_url(base_url)
+            .headers(headers)
             .build()
-            .expect("Failed to create HTTP client");
+    }
 
-        Self {
-            api_token: api_token.to_string(),
-            client,
-            base_url: base_url.to_string(),
-            headers,
-        }
+    /// Returns a new builder for creating a customized CryptoBot client
+    ///
+    /// # Example
+    /// ```
+    /// use crypto_pay_api::CryptoBot;
+    /// use std::time::Duration;
+    ///
+    /// let client = CryptoBot::builder()
+    ///     .api_token("YOUR_API_TOKEN")
+    ///     .timeout(Duration::from_secs(60))
+    ///     .build();
+    /// ```
+    pub fn builder() -> ClientBuilder {
+        ClientBuilder::new()
     }
 
     /// Makes a request to the CryptoBot API
@@ -68,23 +96,18 @@ impl CryptoBot {
         R: DeserializeOwned,
     {
         let url = format!("{}/{}", self.base_url, method.endpoint.as_str());
-        println!("Making request to: {}", url);
 
         let mut request_headers = HeaderMap::new();
-        println!("Constructing header");
         request_headers.insert(
             HeaderName::from_static("crypto-pay-api-token"),
             HeaderValue::from_str(&self.api_token)?,
         );
 
         if let Some(custom_headers) = &self.headers {
-            println!("Adding custom headers");
             for (name, value) in custom_headers.iter() {
                 request_headers.insert(name, value.clone());
             }
         }
-
-        println!("Request builder");
 
         let mut request = match method.method {
             Method::POST => self.client.post(&url).headers(request_headers),
@@ -93,15 +116,10 @@ impl CryptoBot {
         };
 
         if let Some(params) = params {
-            println!("Adding params");
             request = request.json(params);
         }
 
-        println!("Before response");
-
         let response = request.send().await?;
-
-        println!("Got response");
 
         if !response.status().is_success() {
             return Err(CryptoBotError::HttpError(
@@ -109,9 +127,7 @@ impl CryptoBot {
             ));
         }
 
-        println!("Response status: {}", response.status());
         let text = response.text().await?;
-        println!("Response body: {}", text);
 
         let api_response: ApiResponse<R> =
             serde_json::from_str(&text).map_err(|e| CryptoBotError::ApiError {
