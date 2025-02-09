@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use super::Invoice;
+use super::{Check, Invoice, Transfer};
 
 #[derive(Debug, Deserialize)]
 pub struct ApiResponse<T> {
@@ -26,4 +26,14 @@ pub struct GetMeResponse {
 #[derive(Debug, Deserialize)]
 pub struct GetInvoicesResponse {
     pub items: Vec<Invoice>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetTransfersResponse {
+    pub items: Vec<Transfer>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetChecksResponse {
+    pub items: Vec<Check>,
 }

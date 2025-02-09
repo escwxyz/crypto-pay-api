@@ -9,11 +9,11 @@ use async_trait::async_trait;
 
 use crate::{
     models::{
-        AppStats, Balance, Check, CreateCheckParams, CreateInvoiceParams, CryptoCurrencyCode,
-        Currency, ExchangeRate, GetChecksParams, GetInvoicesParams, GetMeResponse, GetStatsParams,
-        Invoice, Transfer, TransferParams,
+        AppStats, Balance, Check, CreateCheckParams, CreateInvoiceParams, Currency, ExchangeRate,
+        GetChecksParams, GetInvoicesParams, GetMeResponse, GetStatsParams, Invoice, Transfer,
+        TransferParams,
     },
-    CryptoBotResult,
+    CryptoBotResult, GetTransfersParams,
 };
 
 #[async_trait]
@@ -31,8 +31,8 @@ pub trait BalanceAPI {
 #[async_trait]
 pub trait CheckAPI {
     async fn create_check(&self, params: &CreateCheckParams) -> CryptoBotResult<Check>;
-    async fn delete_check(&self, check_id: i64) -> CryptoBotResult<bool>;
-    async fn get_checks(&self, params: &GetChecksParams) -> CryptoBotResult<Vec<Check>>;
+    async fn delete_check(&self, check_id: u64) -> CryptoBotResult<bool>;
+    async fn get_checks(&self, params: Option<&GetChecksParams>) -> CryptoBotResult<Vec<Check>>;
 }
 
 #[async_trait]
@@ -44,10 +44,7 @@ pub trait TransferAPI {
     async fn transfer(&self, params: &TransferParams) -> CryptoBotResult<Transfer>;
     async fn get_transfers(
         &self,
-        asset: Option<CryptoCurrencyCode>,
-        transfer_ids: Option<Vec<i64>>,
-        offset: Option<u32>,
-        count: Option<u32>,
+        params: Option<&GetTransfersParams>,
     ) -> CryptoBotResult<Vec<Transfer>>;
 }
 

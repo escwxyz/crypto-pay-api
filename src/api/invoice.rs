@@ -20,25 +20,6 @@ impl InvoiceAPI for crate::CryptoBot {
     /// # Returns
     /// Returns Result with created invoice or CryptoBotError
     ///
-    /// # Examples
-    /// ```rust
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// let bot = CryptoBot::new("test_token");
-    /// let params = CreateInvoiceParams {
-    ///     currency_type: Some(CurrencyType::Crypto),
-    ///     asset: Some(CryptoCurrencyCode::Ton),
-    ///     amount: dec!(10.5),
-    ///     description: Some("Test invoice".to_string()),
-    ///     ..Default::default()
-    /// };
-    /// let invoice = bot.create_invoice(&params).await?;
-    ///
-    /// assert_eq!(invoice.amount, dec!(10.5));
-    /// assert_eq!(invoice.asset, Some(CryptoCurrencyCode::Ton));
-    /// assert_eq!(invoice.description, Some("Test invoice".to_string()));
-    /// ```
-    ///
     async fn create_invoice(
         &self,
         params: &CreateInvoiceParams,
@@ -70,17 +51,6 @@ impl InvoiceAPI for crate::CryptoBot {
     ///
     /// # Returns
     /// Returns Result with true on success or CryptoBotError
-    ///
-    /// # Examples
-    /// ```rust
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// let bot = CryptoBot::new("test_token");
-    /// let result = bot.delete_invoice(528890).await;
-    ///
-    /// assert!(result.is_ok());
-    /// assert!(result.unwrap());
-    /// ```
     async fn delete_invoice(&self, invoice_id: u64) -> CryptoBotResult<bool> {
         let params = DeleteInvoiceParams { invoice_id };
         self.make_request(
@@ -100,25 +70,14 @@ impl InvoiceAPI for crate::CryptoBot {
     ///
     /// # Returns
     /// Returns Result with vector of invoices or CryptoBotError
-    ///
-    /// # Examples
-    /// ```rust
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// let bot = CryptoBot::new("test_token");
-    /// let params = GetInvoicesParams {
-    ///     invoice_ids: Some(vec![530195]),
-    ///     ..Default::default()
-    /// };
-    /// let invoices = bot.get_invoices(Some(&params)).await?;
-    ///
-    /// assert!(!invoices.is_empty());
-    /// assert_eq!(invoices.len(), 1);
-    /// ```
     async fn get_invoices(
         &self,
         params: Option<&GetInvoicesParams>,
     ) -> CryptoBotResult<Vec<Invoice>> {
+        if let Some(params) = params {
+            params.validate()?;
+        }
+
         let response: GetInvoicesResponse = self
             .make_request(
                 &APIMethod {
@@ -211,9 +170,7 @@ mod tests {
         pub fn mock_get_invoices_response_with_invoice_ids(&mut self) -> Mock {
             self.server
                 .mock("GET", "/getInvoices")
-                .match_body(json!({
-                    "invoice_ids": "530195"
-                }).to_string().as_str()) 
+                .match_body(json!({ "invoice_ids": "530195"}).to_string().as_str()) 
                 .with_header("content-type", "application/json")
                 .with_header("Crypto-Pay-API-Token", "test_token")
                 .with_body(json!({

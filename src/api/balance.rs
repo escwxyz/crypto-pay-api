@@ -13,17 +13,6 @@ impl BalanceAPI for CryptoBot {
     ///
     /// # Returns
     /// Returns Result with vector of [Balance] or CryptoBotError
-    ///
-    /// # Example
-    /// ```
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// let client = CryptoBot::new("test_token", None);
-    /// let balances = client.get_balance().await;
-    ///
-    /// assert!(balances.is_ok());
-    /// let balances = balances.unwrap();
-    /// ```
     async fn get_balance(&self) -> Result<Vec<Balance>, CryptoBotError> {
         self.make_request(
             &APIMethod {

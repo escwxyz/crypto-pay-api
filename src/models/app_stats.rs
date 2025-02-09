@@ -32,7 +32,7 @@ pub struct AppStats {
     pub end_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct GetStatsParams {
     /// Optional. Date from which start calculating statistics in ISO 8601 format.
     /// Defaults is current date minus 24 hours.
@@ -43,15 +43,6 @@ pub struct GetStatsParams {
     /// Defaults is current date.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end_at: Option<DateTime<Utc>>,
-}
-
-impl Default for GetStatsParams {
-    fn default() -> Self {
-        Self {
-            start_at: None,
-            end_at: None,
-        }
-    }
 }
 
 impl FieldValidate for GetStatsParams {

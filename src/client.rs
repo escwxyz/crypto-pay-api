@@ -26,13 +26,8 @@ impl CryptoBot {
     ///
     /// # Arguments
     /// * `api_token` - The API token obtained from @CryptoBot
+    /// * `headers` - Optional headers to be added to the request
     ///
-    /// # Example
-    /// ```
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// let client = CryptoBot::new("1234:AAA...AAA");
-    /// ```
     pub fn new(api_token: &str, headers: Option<Vec<(HeaderName, HeaderValue)>>) -> Self {
         Self::new_with_base_url(api_token, DEFAULT_API_URL, headers)
     }

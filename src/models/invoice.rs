@@ -1,7 +1,9 @@
 use crate::{
     error::{CryptoBotError, CryptoBotResult, ValidationErrorKind},
     validate_dependency,
-    validation::{validate_amount, ContextValidate, FieldValidate, ValidationContext},
+    validation::{
+        validate_amount, validate_count, ContextValidate, FieldValidate, ValidationContext,
+    },
 };
 
 use async_trait::async_trait;
@@ -122,7 +124,7 @@ impl Invoice {
         self.status == InvoiceStatus::Expired
     }
 
-    // todo add more methods
+    // TODO
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -145,7 +147,7 @@ impl std::fmt::Display for InvoiceStatus {
 
 // ---- GetInvoicesParams ----
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Default, Serialize)]
 pub struct GetInvoicesParams {
     /// Optional. Cryptocurrency alphabetic code. Supported assets: “USDT”, “TON”, “BTC”, “ETH”, “LTC”, “BNB”, “TRX” and “USDC” (and “JET” for testnet).
     /// Defaults to all currencies.
@@ -177,28 +179,21 @@ pub struct GetInvoicesParams {
     /// Optional. Number of invoices to be returned. Values between 1-1000 are accepted.
     /// Defaults to 100.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub count: Option<u32>,
+    pub count: Option<u16>,
 }
 
 impl GetInvoicesParams {
     fn should_skip_invoice_ids(ids: &Option<Vec<u64>>) -> bool {
-        match ids {
-            Some(ids) if !ids.is_empty() => false,
-            _ => true,
-        }
+        !matches!(ids, Some(ids) if !ids.is_empty())
     }
 }
 
-impl std::default::Default for GetInvoicesParams {
-    fn default() -> Self {
-        Self {
-            asset: None,
-            fiat: None,
-            invoice_ids: None,
-            status: None,
-            offset: None,
-            count: None,
+impl FieldValidate for GetInvoicesParams {
+    fn validate(&self) -> CryptoBotResult<()> {
+        if let Some(count) = &self.count {
+            validate_count(*count)?;
         }
+        Ok(())
     }
 }
 
@@ -317,7 +312,7 @@ impl FieldValidate for CreateInvoiceParams {
         }
 
         // Amount > 0
-        if self.amount.clone() < Decimal::ZERO {
+        if self.amount < Decimal::ZERO {
             return Err(CryptoBotError::ValidationError {
                 kind: ValidationErrorKind::Range,
                 message: "Amount must be greater than 0".to_string(),
@@ -392,7 +387,7 @@ impl FieldValidate for CreateInvoiceParams {
 
         // ExpiresIn between 1 and 2678400 seconds
         if let Some(expires_in) = &self.expires_in {
-            if expires_in < &1 || expires_in > &2678400 {
+            if !(&1..=&2678400).contains(&expires_in) {
                 return Err(CryptoBotError::ValidationError {
                     kind: ValidationErrorKind::Range,
                     message: "expires_in_invalid".to_string(),
@@ -463,9 +458,19 @@ mod tests {
         assert!(json.get("invoice_ids").is_none());
     }
 
+    #[test]
+    fn test_get_invoices_params_validation() {
+        // Test invalid count
+        let params = GetInvoicesParams {
+            count: Some(1001),
+            ..Default::default()
+        };
+        assert!(params.validate().is_err());
+    }
+
     // ! Checked
     #[test]
-    fn test_validation_amount() {
+    fn test_create_invoice_params_validation_amount() {
         let params = CreateInvoiceParams {
             amount: dec!(-1),
             ..Default::default()

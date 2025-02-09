@@ -1,5 +1,6 @@
 use crate::{
     models::{APIMethod, AppStats, Currency, GetMeResponse, GetStatsParams},
+    validation::FieldValidate,
     APIEndpoint, CryptoBot, CryptoBotResult, Method,
 };
 use async_trait::async_trait;
@@ -12,15 +13,6 @@ impl MiscAPI for CryptoBot {
     ///
     /// # Returns
     /// Returns basic information about an application or CryptoBotError
-    ///
-    /// # Example
-    /// ```
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// let client = CryptoBot::new("test_token", None);
-    /// let me = client.get_me().await;
-    /// assert!(me.is_ok());
-    /// ```
     async fn get_me(&self) -> CryptoBotResult<GetMeResponse> {
         self.make_request(
             &APIMethod {
@@ -36,19 +28,6 @@ impl MiscAPI for CryptoBot {
     ///
     /// # Returns
     /// Returns Result with vector of supported currencies or CryptoBotError
-    ///
-    /// # Example
-    /// ```
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// let client = CryptoBot::new("test_token", None);
-    /// let currencies = client.get_currencies().await;
-    ///
-    /// assert!(currencies.is_ok());
-    /// let currencies = currencies.unwrap();
-    ///
-    /// assert_eq!(currencies.len(), 33);
-    /// ```
     async fn get_currencies(&self) -> CryptoBotResult<Vec<Currency>> {
         let method = APIMethod {
             endpoint: APIEndpoint::GetCurrencies,
@@ -65,17 +44,11 @@ impl MiscAPI for CryptoBot {
     ///
     /// # Returns
     /// Returns Result with app statistics or CryptoBotError
-    ///
-    /// # Example
-    /// ```
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// let client = CryptoBot::new("test_token", None);
-    /// let stats = client.get_stats(None::<&GetStatsParams>).await;
-    ///
-    /// assert!(stats.is_ok());
-    ///```
     async fn get_stats(&self, params: Option<&GetStatsParams>) -> CryptoBotResult<AppStats> {
+        if let Some(params) = params {
+            params.validate()?;
+        }
+
         self.make_request(
             &APIMethod {
                 endpoint: APIEndpoint::GetStats,

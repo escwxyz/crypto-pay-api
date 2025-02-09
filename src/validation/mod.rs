@@ -31,6 +31,7 @@ macro_rules! validate_dependency {
 }
 
 mod amount;
-mod currency;
+mod count;
 
 pub use amount::*;
+pub use count::*;
