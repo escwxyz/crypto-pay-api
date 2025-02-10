@@ -3,9 +3,8 @@
 [![Crates.io](https://img.shields.io/crates/v/crypto-pay-api.svg)](https://crates.io/crates/crypto-pay-api)
 [![Documentation](https://docs.rs/crypto-pay-api/badge.svg)](https://docs.rs/crypto-pay-api)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Build Status](https://github.com/escwxyz/crypto-pay-api/workflows/CI/badge.svg)](https://github.com/escwxyz/crypto-pay-api/actions)
-[![Downloads](https://img.shields.io/crates/d/crypto-pay-api.svg)](https://crates.io/crates/crypto-pay-api)
 [![CI](https://github.com/escwxyz/crypto-pay-api/actions/workflows/test.yml/badge.svg)](https://github.com/escwxyz/crypto-pay-api/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/escwxyz/crypto-pay-api/graph/badge.svg?token=Ar6BnDUude)](https://codecov.io/gh/escwxyz/crypto-pay-api)
 
 A type-safe Rust client for the [Crypto Bot](https://t.me/CryptoBot) API with async support.
 
