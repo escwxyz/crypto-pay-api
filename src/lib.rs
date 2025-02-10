@@ -7,17 +7,14 @@ mod validation;
 mod webhook;
 
 pub mod prelude {
-    pub use rust_decimal::Decimal;
+    // Third-party crates re-exports
+    pub use crate::utils::types::*;
 
-    pub use crate::models::*;
-
+    // Local crates re-exports
     pub use crate::api::*;
-
     pub use crate::client::CryptoBot;
-
+    pub use crate::error::*;
+    pub use crate::models::*;
     pub use crate::webhook::*;
-
-    #[cfg(feature = "axum-webhook")]
-    pub use crate::webhook::axum::webhook_middleware;
 }
 pub use prelude::*;

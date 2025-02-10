@@ -6,6 +6,7 @@ mod exchange_rate;
 mod invoice;
 mod response;
 mod transfer;
+mod webhook;
 
 pub use app_stats::*;
 pub use balance::*;
@@ -16,6 +17,7 @@ pub use invoice::*;
 pub use response::*;
 use serde::{Deserialize, Serialize};
 pub use transfer::*;
+pub use webhook::*;
 
 #[derive(Debug)]
 pub enum APIEndpoint {
@@ -65,7 +67,7 @@ pub struct APIMethod {
     pub method: Method,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub enum PayButtonName {
     #[serde(rename = "viewItem")]
     ViewItem,

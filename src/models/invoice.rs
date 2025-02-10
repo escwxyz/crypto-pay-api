@@ -19,7 +19,7 @@ use super::{CryptoCurrencyCode, CurrencyType, FiatCurrencyCode, PayButtonName};
 
 // ---- Invoice ----
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Invoice {
     /// Unique ID for this invoice.
     pub invoice_id: i64,
@@ -131,7 +131,7 @@ impl Invoice {
     // TODO
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum InvoiceStatus {
     Active,

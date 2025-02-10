@@ -1,4 +1,5 @@
 mod serde_helpers;
+pub mod types;
 
 pub use serde_helpers::*;
 
