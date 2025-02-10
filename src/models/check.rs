@@ -142,6 +142,36 @@ impl CreateCheckParams {
         self.amount = amount;
         self
     }
+
+    /// Sets the pin to user id for the check
+    ///
+    /// # Arguments
+    /// * `pin_to_user_id` - The pin to user id for the check.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateCheckParams::new().pin_to_user_id(1234567890);
+    /// ```
+    pub fn pin_to_user_id(mut self, pin_to_user_id: u64) -> Self {
+        self.pin_to_user_id = Some(pin_to_user_id);
+        self
+    }
+
+    /// Sets the pin to username for the check
+    ///
+    /// # Arguments
+    /// * `pin_to_username` - The pin to username for the check.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateCheckParams::new().pin_to_username("test_username");
+    /// ```
+    pub fn pin_to_username(mut self, pin_to_username: &str) -> Self {
+        self.pin_to_username = Some(pin_to_username.to_string());
+        self
+    }
 }
 
 impl Default for CreateCheckParams {

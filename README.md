@@ -38,7 +38,7 @@ use crypto_pay_api::prelude::*;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize client
-    let client = CryptoBot::new("YOUR_API_TOKEN");
+    let client = CryptoBot::new("YOUR_API_TOKEN", None);
 
     // Create an invoice
     let params = CreateInvoiceParams {
@@ -91,11 +91,11 @@ use crypto_pay_api::prelude::*;
 
 #[tokio::main]
 async fn main() {
-    let client = CryptoBot::new("YOUR_API_TOKEN");
-    let mut handler = WebhookHandler::new(client);
+    let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    let mut handler = client.webhook_handler();
 
     // Register payment callback
-    handler.on_invoice_paid(|update| async move {
+    handler.on_update(|update| async move {
         println!("Payment received: {} {}", update.invoice.amount, update.invoice.asset.unwrap());
         Ok(())
     });
@@ -104,6 +104,8 @@ async fn main() {
     // ... integrate with your web framework
 }
 ```
+
+See [examples/axum_webhook.rs](examples/axum_webhook.rs) for an example using axum.
 
 ### Custom Configuration
 
@@ -132,14 +134,6 @@ match client.get_balance().await {
 }
 ```
 
-## Examples 📝
-
-Check the [examples](examples) directory for more examples:
-
-- [Create Invoice](examples/create_invoice.rs)
-- [Handle Payment](examples/handle_payment.rs)
-- [Setup Webhook](examples/setup_webhook.rs)
-
 ## Documentation 📚
 
 - [API Documentation](https://docs.rs/crypto-pay-api)
@@ -152,7 +146,3 @@ Contributions are welcome! Please check out our [Contributing Guide](CONTRIBUTIN
 ## License 📄
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Changelog 📝
-
-See [CHANGELOG.md](CHANGELOG.md) for version history.

@@ -37,6 +37,12 @@ pub enum CryptoCurrencyCode {
     Jet,
 }
 
+impl std::fmt::Display for CryptoCurrencyCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum FiatCurrencyCode {
@@ -64,7 +70,13 @@ pub enum FiatCurrencyCode {
     Ils,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+impl std::fmt::Display for FiatCurrencyCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum CurrencyType {
     Crypto,

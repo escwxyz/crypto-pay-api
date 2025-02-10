@@ -10,10 +10,67 @@ use super::ExchangeRateAPI;
 
 #[async_trait]
 impl ExchangeRateAPI for CryptoBot {
-    /// Gets exchange rates for supported currencies
+    /// Gets current exchange rates for all supported cryptocurrencies
+    ///
+    /// This method returns exchange rates between supported cryptocurrencies and target currencies.
+    /// Exchange rates are updated regularly by CryptoBot.
     ///
     /// # Returns
-    /// Returns Result with vector of exchange rates or CryptoBotError
+    /// * `Ok(Vec<ExchangeRate>)` - A list of current exchange rates
+    /// * `Err(CryptoBotError)` - If the request fails
+    ///
+    /// # Exchange Rate Pairs
+    /// Exchange rates are provided for various pairs:
+    /// * Cryptocurrency to fiat (e.g., TON/USD, BTC/EUR)
+    /// * Cryptocurrency to cryptocurrency (e.g., TON/BTC, ETH/BTC)
+    /// * Test currencies are also included in testnet mode
+    ///
+    /// # Example
+    /// ```no_run
+    /// use crypto_pay_api::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), CryptoBotError> {
+    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     
+    ///     let rates = client.get_exchange_rates().await?;
+    ///     
+    ///     for rate in rates {
+    ///         println!("Exchange Rate: {} {} = {}",
+    ///             rate.source,
+    ///             rate.target,
+    ///             rate.rate,
+    ///         );
+    ///     }
+    ///     
+    ///     Ok(())
+    /// }
+    /// ```
+    ///
+    /// # Response Example
+    /// ```json
+    /// [
+    ///   {
+    ///     "is_valid": true,
+    ///     "is_crypto": true,
+    ///     "is_fiat": false,
+    ///     "source": "TON",
+    ///     "target": "USD",
+    ///     "rate": "1.857",
+    ///   },
+    ///   {
+    ///     "is_valid": true,
+    ///     "is_crypto": true,
+    ///     "is_fiat": false,
+    ///     "source": "BTC",
+    ///     "target": "USD",
+    ///     "rate": "42000.00",
+    ///   }
+    /// ]
+    /// ```
+    /// # See Also
+    /// * [ExchangeRate](struct.ExchangeRate.html) - The structure representing an exchange rate
+    /// * [CryptoBot API Documentation](https://help.crypt.bot/crypto-pay-api#getExchangeRates)
     async fn get_exchange_rates(&self) -> CryptoBotResult<Vec<ExchangeRate>> {
         self.make_request(
             &APIMethod {

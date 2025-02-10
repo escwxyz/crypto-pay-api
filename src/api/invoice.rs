@@ -13,14 +13,46 @@ use crate::validation::ValidationContext;
 
 #[async_trait]
 impl InvoiceAPI for crate::CryptoBot {
-    /// Creates a new invoice
+    /// Creates a new cryptocurrency invoice
+    ///
+    /// An invoice is a request for cryptocurrency payment with a specific amount
+    /// and currency. Once created, the invoice can be paid by any user.
     ///
     /// # Arguments
-    /// * `params` - Parameters for creating the invoice
+    /// * `params` - Parameters for creating the invoice. See [`CreateInvoiceParams`] for details.
     ///
     /// # Returns
-    /// Returns Result with created invoice or CryptoBotError
+    /// * `Ok(Invoice)` - The created invoice
+    /// * `Err(CryptoBotError)` - If validation fails or the request fails
     ///
+    /// # Errors
+    /// This method will return an error if:
+    /// * The parameters are invalid (e.g., negative amount)
+    /// * The currency is not supported
+    /// * The API request fails
+    /// * The exchange rate validation fails (for paid_amount/paid_currency)
+    ///
+    /// # Example
+    /// ```no_run
+    /// use crypto_pay_api::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), CryptoBotError> {
+    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     
+    ///     let params = CreateInvoiceParams::new()
+    ///         .asset(CryptoCurrencyCode::Ton)
+    ///         .amount(dec!(10.5))
+    ///         .description("Payment for service")
+    ///         .paid_btn_name(PayButtonName::ViewItem)
+    ///         .paid_btn_url("https://example.com/order/123");
+    ///     
+    ///     let invoice = client.create_invoice(&params).await?;
+    ///     println!("Invoice created: {}", invoice.amount);
+    ///     
+    ///     Ok(())
+    /// }
+    /// ```
     async fn create_invoice(
         &self,
         params: &CreateInvoiceParams,
@@ -45,13 +77,34 @@ impl InvoiceAPI for crate::CryptoBot {
         .await
     }
 
-    /// Deletes an invoice
+    /// Deletes an existing invoice
+    ///
+    /// Once deleted, the invoice becomes invalid and cannot be paid.
+    /// This is useful for cancelling unpaid invoices.
     ///
     /// # Arguments
-    /// * `invoice_id` - ID of the invoice to delete
+    /// * `invoice_id` - The unique identifier of the invoice to delete
     ///
     /// # Returns
-    /// Returns Result with true on success or CryptoBotError
+    /// * `Ok(true)` - If the invoice was successfully deleted
+    /// * `Err(CryptoBotError)` - If the invoice doesn't exist or the request fails
+    ///
+    /// # Example
+    /// ```no_run
+    /// use crypto_pay_api::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), CryptoBotError> {
+    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     
+    ///     match client.delete_invoice(12345).await {
+    ///         Ok(_) => println!("Invoice deleted successfully"),
+    ///         Err(e) => eprintln!("Failed to delete invoice: {}", e),
+    ///     }
+    ///     
+    ///     Ok(())
+    /// }
+    /// ```
     async fn delete_invoice(&self, invoice_id: u64) -> CryptoBotResult<bool> {
         let params = DeleteInvoiceParams { invoice_id };
         self.make_request(
@@ -64,13 +117,53 @@ impl InvoiceAPI for crate::CryptoBot {
         .await
     }
 
-    /// Gets invoices by specified parameters
+    /// Gets a list of invoices with optional filtering
+    ///
+    /// Retrieves all invoices matching the specified filter parameters.
+    /// If no parameters are provided, returns all invoices.
     ///
     /// # Arguments
-    /// * `params` - Parameters for filtering invoices
+    /// * `params` - Optional filter parameters. See [`GetInvoicesParams`] for available filters.
     ///
     /// # Returns
-    /// Returns Result with vector of invoices or CryptoBotError
+    /// * `Ok(Vec<Invoice>)` - List of invoices matching the filter criteria
+    /// * `Err(CryptoBotError)` - If the parameters are invalid or the request fails
+    ///
+    /// # Example
+    /// ```no_run
+    /// use crypto_pay_api::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), CryptoBotError> {
+    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     
+    ///     // Get all invoices
+    ///     let all_invoices = client.get_invoices(None).await?;
+    ///     
+    ///     // Get invoices with filters
+    ///     let params = GetInvoicesParams::new()
+    ///         .asset(CryptoCurrencyCode::Ton)
+    ///         .status(InvoiceStatus::Paid);
+    ///     
+    ///     let paid_invoices = client.get_invoices(Some(&params)).await?;
+    ///     
+    ///     for invoice in paid_invoices {
+    ///         println!("Invoice #{}: {} {} (paid at: {})",
+    ///             invoice.invoice_id,
+    ///             invoice.amount,
+    ///             invoice.asset.unwrap(),
+    ///             invoice.paid_at.unwrap_or_default()
+    ///         );
+    ///     }
+    ///     
+    ///     Ok(())
+    /// }
+    /// ```
+    ///
+    /// # See Also
+    /// * [Invoice](struct.Invoice.html) - The structure representing an invoice
+    /// * [GetInvoicesParams](struct.GetInvoicesParams.html) - Available filter parameters
+    /// * [CryptoBot API Documentation](https://help.crypt.bot/crypto-pay-api#getInvoices)
     async fn get_invoices(
         &self,
         params: Option<&GetInvoicesParams>,

@@ -190,6 +190,107 @@ impl GetInvoicesParams {
     fn should_skip_invoice_ids(ids: &Option<Vec<u64>>) -> bool {
         !matches!(ids, Some(ids) if !ids.is_empty())
     }
+
+    /// Creates a new GetInvoicesParams instance with default values.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetInvoicesParams::new();
+    /// ```
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the asset for the invoices.
+    ///
+    /// # Arguments
+    /// * `asset` - The asset for the invoices.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetInvoicesParams::new().asset(CryptoCurrencyCode::Ton);
+    /// ```
+    pub fn asset(mut self, asset: CryptoCurrencyCode) -> Self {
+        self.asset = Some(asset);
+        self
+    }
+
+    /// Sets the fiat for the invoices.
+    ///
+    /// # Arguments
+    /// * `fiat` - The fiat for the invoices.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetInvoicesParams::new().fiat(FiatCurrencyCode::Usd);
+    /// ```
+    pub fn fiat(mut self, fiat: FiatCurrencyCode) -> Self {
+        self.fiat = Some(fiat);
+        self
+    }
+
+    /// Sets the invoice ids for the invoices.
+    ///
+    /// # Arguments
+    /// * `invoice_ids` - The invoice ids for the invoices.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetInvoicesParams::new().invoice_ids(vec![1, 2, 3]);
+    /// ```
+    pub fn invoice_ids(mut self, invoice_ids: Vec<u64>) -> Self {
+        self.invoice_ids = Some(invoice_ids);
+        self
+    }
+
+    /// Sets the status for the invoices.
+    ///
+    /// # Arguments
+    /// * `status` - The status for the invoices.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetInvoicesParams::new().status(InvoiceStatus::Paid);
+    /// ```
+    pub fn status(mut self, status: InvoiceStatus) -> Self {
+        self.status = Some(status);
+        self
+    }
+
+    /// Sets the offset for the invoices.
+    ///
+    /// # Arguments
+    /// * `offset` - The offset for the invoices.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetInvoicesParams::new().offset(10);
+    /// ```
+    pub fn offset(mut self, offset: u32) -> Self {
+        self.offset = Some(offset);
+        self
+    }
+
+    /// Sets the count for the invoices.
+    ///
+    /// # Arguments
+    /// * `count` - The count for the invoices.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetInvoicesParams::new().count(10);
+    /// ```
+    pub fn count(mut self, count: u16) -> Self {
+        self.count = Some(count);
+        self
+    }
 }
 
 impl FieldValidate for GetInvoicesParams {
@@ -413,6 +514,215 @@ impl ContextValidate for CreateInvoiceParams {
     }
 }
 
+impl CreateInvoiceParams {
+    /// Creates a new CreateInvoiceParams instance with default values.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new(); // default currency_type: Crypto, asset: TON
+    /// ```
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the currency type for the invoice.
+    ///
+    /// # Arguments
+    /// * `currency_type` - The type of currency for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().currency_type(CurrencyType::Crypto);
+    /// ```
+    pub fn currency_type(mut self, currency_type: CurrencyType) -> Self {
+        self.currency_type = Some(currency_type);
+        self
+    }
+
+    /// Sets the asset for the invoice.
+    ///
+    /// # Arguments
+    /// * `asset` - The asset for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().asset(CryptoCurrencyCode::Ton);
+    /// ```
+    pub fn asset(mut self, asset: CryptoCurrencyCode) -> Self {
+        self.asset = Some(asset);
+        self
+    }
+
+    /// Sets the fiat currency for the invoice.
+    ///
+    /// # Arguments
+    /// * `fiat` - The fiat currency for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().fiat(FiatCurrencyCode::Usd);
+    /// ```
+    pub fn fiat(mut self, fiat: FiatCurrencyCode) -> Self {
+        self.fiat = Some(fiat);
+        self
+    }
+
+    /// Sets the amount for the invoice.
+    ///
+    /// # Arguments
+    /// * `amount` - The amount for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().amount(dec!(100));
+    /// ```
+    pub fn amount(mut self, amount: Decimal) -> Self {
+        self.amount = amount;
+        self
+    }
+
+    /// Sets the description for the invoice.
+    ///
+    /// # Arguments
+    /// * `description` - The description for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().description("This is a test invoice");
+    /// ```
+    pub fn description(mut self, description: &str) -> Self {
+        self.description = Some(description.to_string());
+        self
+    }
+
+    /// Sets the hidden message for the invoice.
+    ///
+    /// # Arguments
+    /// * `hidden_message` - The hidden message for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().hidden_message("This is a hidden message");
+    /// ```
+    pub fn hidden_message(mut self, hidden_message: &str) -> Self {
+        self.hidden_message = Some(hidden_message.to_string());
+        self
+    }
+
+    /// Sets the paid button name for the invoice.
+    ///
+    /// # Arguments
+    /// * `paid_btn_name` - The paid button name for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().paid_btn_name(PayButtonName::ViewItem);
+    /// ```
+    pub fn paid_btn_name(mut self, paid_btn_name: PayButtonName) -> Self {
+        self.paid_btn_name = Some(paid_btn_name);
+        self
+    }
+
+    /// Sets the paid button URL for the invoice.
+    ///
+    /// # Arguments
+    /// * `paid_btn_url` - The paid button URL for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().paid_btn_url("https://example.com");
+    /// ```
+    pub fn paid_btn_url(mut self, paid_btn_url: &str) -> Self {
+        self.paid_btn_url = Some(paid_btn_url.to_string());
+        self
+    }
+
+    /// Sets the payload for the invoice.
+    ///
+    /// # Arguments
+    /// * `payload` - The payload for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().payload("This is a payload");
+    /// ```
+    pub fn payload(mut self, payload: &str) -> Self {
+        self.payload = Some(payload.to_string());
+        self
+    }
+
+    /// Sets the allow comments for the invoice.
+    ///
+    /// # Arguments
+    /// * `allow_comments` - The allow comments for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().allow_comments(true);
+    /// ```
+    pub fn allow_comments(mut self, allow_comments: bool) -> Self {
+        self.allow_comments = Some(allow_comments);
+        self
+    }
+
+    /// Sets the allow anonymous for the invoice.
+    ///
+    /// # Arguments
+    /// * `allow_anonymous` - The allow anonymous for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().allow_anonymous(true);
+    /// ```
+    pub fn allow_anonymous(mut self, allow_anonymous: bool) -> Self {
+        self.allow_anonymous = Some(allow_anonymous);
+        self
+    }
+
+    /// Sets the expires in seconds for the invoice.
+    ///
+    /// Values between 1-2678400 are accepted.
+    /// # Arguments
+    /// * `expires_in` - The expires in seconds for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().expires_in(3600);
+    /// ```
+    pub fn expires_in(mut self, expires_in: u32) -> Self {
+        self.expires_in = Some(expires_in);
+        self
+    }
+
+    /// Sets the accept asset for the invoice.
+    ///
+    /// # Arguments
+    /// * `accept_asset` - The accept asset for the invoice.
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateInvoiceParams::new().accept_asset(vec![CryptoCurrencyCode::Ton]);
+    /// ```
+    pub fn accept_asset(mut self, accept_asset: Vec<CryptoCurrencyCode>) -> Self {
+        self.accept_asset = Some(accept_asset);
+        self
+    }
+}
+
 // ---- DeleteInvoiceParams ----
 
 #[derive(Debug, Serialize)]
@@ -437,26 +747,17 @@ mod tests {
     #[test]
     fn test_serialize_invoice_ids() {
         // Test with values
-        let params = GetInvoicesParams {
-            invoice_ids: Some(vec![1, 2, 3]),
-            ..Default::default()
-        };
+        let params = GetInvoicesParams::new().invoice_ids(vec![1, 2, 3]);
         let json = serde_json::to_value(&params).unwrap();
         assert_eq!(json["invoice_ids"], "1,2,3");
 
         // Test empty vector
-        let params = GetInvoicesParams {
-            invoice_ids: Some(vec![]),
-            ..Default::default()
-        };
+        let params = GetInvoicesParams::new().invoice_ids(vec![]);
         let json = serde_json::to_value(&params).unwrap();
         assert!(json.get("invoice_ids").is_none());
 
         // Test None
-        let params = GetInvoicesParams {
-            invoice_ids: None,
-            ..Default::default()
-        };
+        let params = GetInvoicesParams::new();
         let json = serde_json::to_value(&params).unwrap();
         assert!(json.get("invoice_ids").is_none());
     }
@@ -464,20 +765,13 @@ mod tests {
     #[test]
     fn test_get_invoices_params_validation() {
         // Test invalid count
-        let params = GetInvoicesParams {
-            count: Some(1001),
-            ..Default::default()
-        };
+        let params = GetInvoicesParams::new().count(1001);
         assert!(params.validate().is_err());
     }
 
-    // ! Checked
     #[test]
     fn test_create_invoice_params_validation_amount() {
-        let params = CreateInvoiceParams {
-            amount: dec!(-1),
-            ..Default::default()
-        };
+        let params = CreateInvoiceParams::new().amount(dec!(-1));
 
         let result = params.validate();
 
@@ -491,7 +785,6 @@ mod tests {
         ));
     }
 
-    // ! Checked
     #[test]
     fn test_validation_currency_type_dependencies() {
         // Test crypto without asset
@@ -531,15 +824,12 @@ mod tests {
         ));
     }
 
-    // ! Checked
     #[test]
     fn test_validation_string_lengths() {
         // Test description length
-        let params = CreateInvoiceParams {
-            amount: dec!(10),
-            description: Some("a".repeat(1025)),
-            ..Default::default()
-        };
+        let params = CreateInvoiceParams::new()
+            .amount(dec!(10))
+            .description(&"a".repeat(1025));
 
         let result = params.validate();
         assert!(matches!(
@@ -552,11 +842,9 @@ mod tests {
         ));
 
         // Test hidden message length
-        let params = CreateInvoiceParams {
-            amount: dec!(10),
-            hidden_message: Some("a".repeat(2049)),
-            ..Default::default()
-        };
+        let params = CreateInvoiceParams::new()
+            .amount(dec!(10))
+            .hidden_message(&"a".repeat(2049));
 
         let result = params.validate();
         assert!(matches!(
@@ -569,7 +857,6 @@ mod tests {
         ));
     }
 
-    // ! Checked
     #[test]
     fn test_validation_paid_button() {
         // Test paid_btn_url required when paid_btn_name is set
@@ -592,12 +879,10 @@ mod tests {
         ));
 
         // Test invalid URL format
-        let params = CreateInvoiceParams {
-            amount: dec!(10),
-            paid_btn_name: Some(PayButtonName::ViewItem),
-            paid_btn_url: Some("invalid-url".to_string()),
-            ..Default::default()
-        };
+        let params = CreateInvoiceParams::new()
+            .amount(dec!(10))
+            .paid_btn_name(PayButtonName::ViewItem)
+            .paid_btn_url("invalid-url");
 
         let result = params.validate();
         assert!(matches!(
