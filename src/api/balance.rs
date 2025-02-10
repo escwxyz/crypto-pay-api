@@ -10,10 +10,59 @@ use super::BalanceAPI;
 
 #[async_trait]
 impl BalanceAPI for CryptoBot {
-    /// Gets current balance for all supported currencies
+    /// Gets current balance for all supported cryptocurrencies in your CryptoBot wallet
+    ///
+    /// This method returns the current balance for all cryptocurrencies that are
+    /// available in your CryptoBot wallet, including both crypto and test currencies.
     ///
     /// # Returns
-    /// Returns Result with vector of [Balance] or CryptoBotError
+    /// * `Ok(Vec<Balance>)` - A vector of balances for each currency
+    /// * `Err(CryptoBotError)` - If the request fails
+    ///
+    /// # Errors
+    /// This method will return an error if:
+    /// * The API request fails
+    /// * The response cannot be parsed
+    /// * The API token is invalid
+    ///
+    /// # Example
+    /// ```no_run
+    /// use crypto_pay_api::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), CryptoBotError> {
+    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     
+    ///     let balances = client.get_balance().await?;
+    ///     
+    ///     for balance in balances {
+    ///         println!("Currency: {}", balance.currency_code);
+    ///         println!("Available: {}", balance.available);
+    ///     }
+    ///     
+    ///     Ok(())
+    /// }
+    /// ```
+    ///
+    /// # Response Example
+    /// ```json
+    /// [
+    ///   {
+    ///     "currency_code": "TON",
+    ///     "available": "125.32",
+    ///     "onhold": "0"
+    ///   },
+    ///   {
+    ///     "currency_code": "BTC",
+    ///     "available": "0.12345",
+    ///     "onhold": "0.00001"
+    ///   }
+    /// ]
+    /// ```
+    ///
+    /// # See Also
+    /// * [Balance](struct.Balance.html) - The structure representing a currency balance
+    /// * [CryptoBot API Documentation](https://help.crypt.bot/crypto-pay-api#getBalance)
     async fn get_balance(&self) -> Result<Vec<Balance>, CryptoBotError> {
         self.make_request(
             &APIMethod {

@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -92,6 +93,63 @@ impl ContextValidate for CreateCheckParams {
     }
 }
 
+impl CreateCheckParams {
+    /// Creates a new instance of CreateCheckParams
+    ///
+    /// # Example
+    /// ```
+    /// use crypto_pay_api::prelude::*;
+    ///
+    /// let params = CreateCheckParams::new()
+    ///     .asset(CryptoCurrencyCode::Ton)
+    ///     .amount(dec!(10.5));
+    /// ```
+    pub fn new() -> Self {
+        Self {
+            asset: CryptoCurrencyCode::Ton,
+            amount: dec!(0),
+            pin_to_user_id: None,
+            pin_to_username: None,
+        }
+    }
+
+    /// Sets the cryptocurrency asset for the check
+    ///
+    /// # Arguments
+    /// * `asset` - Asset code (e.g., "TON", "BTC", "ETH", etc.)
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateCheckParams::new().asset(CryptoCurrencyCode::Ton);
+    /// ```
+    pub fn asset(mut self, asset: CryptoCurrencyCode) -> Self {
+        self.asset = asset;
+        self
+    }
+
+    /// Sets the amount of cryptocurrency
+    ///
+    /// # Arguments
+    /// * `amount` - Amount in decimal string format (e.g., "10.5", "0.01", etc.)
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = CreateCheckParams::new().amount(dec!(10.5));
+    /// ```
+    pub fn amount(mut self, amount: Decimal) -> Self {
+        self.amount = amount;
+        self
+    }
+}
+
+impl Default for CreateCheckParams {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // ---- GetChecksParams ----
 
 #[derive(Debug, Default, Serialize)]
@@ -128,6 +186,98 @@ impl GetChecksParams {
     fn should_skip_check_ids(check_ids: &Option<Vec<u64>>) -> bool {
         !matches!(check_ids, Some(check_ids) if !check_ids.is_empty())
     }
+
+    /// Creates a new instance of GetChecksParams
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetChecksParams::new();
+    /// ```
+    pub fn new() -> Self {
+        Self {
+            asset: None,
+            check_ids: None,
+            status: None,
+            offset: None,
+            count: None,
+        }
+    }
+
+    /// Sets the cryptocurrency asset for the check
+    ///
+    /// # Arguments
+    /// * `asset` - Asset code (e.g., "TON", "BTC", "ETH", etc.)
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetChecksParams::new().asset(CryptoCurrencyCode::Ton);
+    /// ```
+    pub fn asset(mut self, asset: CryptoCurrencyCode) -> Self {
+        self.asset = Some(asset);
+        self
+    }
+
+    /// Sets the list of check IDs
+    ///
+    /// # Arguments
+    /// * `check_ids` - List of check IDs
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetChecksParams::new().check_ids(vec![1, 2, 3]);
+    /// ```
+    pub fn check_ids(mut self, check_ids: Vec<u64>) -> Self {
+        self.check_ids = Some(check_ids);
+        self
+    }
+
+    /// Sets the status of the check
+    ///
+    /// # Arguments
+    /// * `status` - Status of the check
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetChecksParams::new().status(CheckStatus::Active);
+    /// ```
+    pub fn status(mut self, status: CheckStatus) -> Self {
+        self.status = Some(status);
+        self
+    }
+
+    /// Sets the offset
+    ///
+    /// # Arguments
+    /// * `offset` - Offset
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetChecksParams::new().offset(10);
+    /// ```
+    pub fn offset(mut self, offset: u32) -> Self {
+        self.offset = Some(offset);
+        self
+    }
+
+    /// Sets the number of checks to return
+    ///
+    /// # Arguments
+    /// * `count` - Number of checks to return
+    ///
+    /// # Example
+    /// ```
+    /// # use crypto_pay_api::prelude::*;
+    /// let params = GetChecksParams::new().count(10);
+    /// ```
+    pub fn count(mut self, count: u16) -> Self {
+        self.count = Some(count);
+        self
+    }
 }
 
 impl FieldValidate for GetChecksParams {
@@ -160,15 +310,11 @@ mod tests {
 
     use super::*;
 
-    // ! Checked
     #[test]
     fn test_create_check_params_validation_amount() {
-        let params = CreateCheckParams {
-            asset: CryptoCurrencyCode::Ton,
-            amount: dec!(-1),
-            pin_to_user_id: None,
-            pin_to_username: None,
-        };
+        let params = CreateCheckParams::new()
+            .asset(CryptoCurrencyCode::Ton)
+            .amount(dec!(-1));
 
         let result = params.validate();
 
@@ -182,13 +328,9 @@ mod tests {
         ));
     }
 
-    // ! Checked
     #[test]
     fn test_get_checks_params_validate() {
-        let params = GetChecksParams {
-            count: Some(1001),
-            ..Default::default()
-        };
+        let params = GetChecksParams::new().count(1001);
 
         let result = params.validate();
 
