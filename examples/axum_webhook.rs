@@ -52,7 +52,7 @@ async fn main() {
 
     // Register handlers
     webhook_handler.on_update(|update| async move {
-        println!("Invoice paid: {:?}", update);
+        println!("Invoice paid: {:?}", update.payload);
         Ok(())
     });
 

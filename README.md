@@ -94,7 +94,7 @@ async fn main() -> Result<(), CryptoBotError> {
 
     // Register payment callback
     handler.on_update(|update| async move {
-        println!("Payment received: {} {}", update.invoice.amount, update.invoice.asset.unwrap());
+        println!("Invoice paid: {:?}", update.payload);
         Ok(())
     });
 
@@ -109,7 +109,8 @@ See [examples/axum_webhook.rs](examples/axum_webhook.rs) for an example using ax
 
 ```rust
 let client = CryptoBot::builder()
-    .token("YOUR_API_TOKEN")
+    .api_token("YOUR_API_TOKEN")
+    .base_url("https://pay.crypt.bot/api")
     .timeout(Duration::from_secs(30))
     .build();
 ```

@@ -433,6 +433,17 @@ mod tests {
         assert_eq!(params.fiat, None);
     }
 
+    // fn test_get_invoices_params_builder_custom_config() {
+    //     let params = GetInvoicesParamsBuilder::new()
+    //         .asset(CryptoCurrencyCode::Ton)
+    //         .fiat(FiatCurrencyCode::Usd)
+    //         .build()
+    //         .unwrap();
+
+    //     assert_eq!(params.asset, Some(CryptoCurrencyCode::Ton));
+    //     assert_eq!(params.fiat, Some(FiatCurrencyCode::Usd));
+    // }
+
     #[test]
     fn test_get_invoices_params_builder_invalid_count() {
         let result = GetInvoicesParamsBuilder::new().count(1001).build();

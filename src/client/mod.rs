@@ -1,5 +1,7 @@
 mod builder;
 
+use std::str::FromStr;
+
 use crate::{
     error::{CryptoBotError, CryptoBotResult},
     models::{APIMethod, ApiResponse, Method},
@@ -86,10 +88,10 @@ impl CryptoBot {
         let url = format!("{}/{}", self.base_url, method.endpoint.as_str());
 
         let mut request_headers = HeaderMap::new();
-        request_headers.insert(
-            HeaderName::from_static("crypto-pay-api-token"),
-            HeaderValue::from_str(&self.api_token)?,
-        );
+
+        let token_header = HeaderName::from_str("Crypto-Pay-Api-Token")?;
+
+        request_headers.insert(token_header, HeaderValue::from_str(&self.api_token)?);
 
         if let Some(custom_headers) = &self.headers {
             for (name, value) in custom_headers.iter() {
@@ -146,5 +148,105 @@ impl CryptoBot {
             headers: None,
             test_rates: Some(TestContext::mock_exchange_rates()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use mockito::Mock;
+    use serde_json::json;
+
+    use crate::{api::BalanceAPI, utils::test_utils::TestContext};
+
+    use super::*;
+    impl TestContext {
+        pub fn mock_malformed_json_response(&mut self) -> Mock {
+            self.server
+                .mock("GET", "/getBalance")
+                .with_header("content-type", "application/json")
+                .with_body("invalid json{")
+                .create()
+        }
+
+        pub fn mock_api_error_response(&mut self) -> Mock {
+            self.server
+                .mock("GET", "/getBalance")
+                .with_header("content-type", "application/json")
+                .with_body(
+                    json!({
+                        "ok": false,
+                        "error": "Test error message",
+                        "error_code": 123
+                    })
+                    .to_string(),
+                )
+                .create()
+        }
+    }
+
+    #[test]
+    fn test_malformed_json_response() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_malformed_json_response();
+
+        let client = CryptoBot::builder()
+            .api_token("test")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async { client.get_balance().await });
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ApiError {
+                code: -1,
+                message,
+                details: Some(_)
+            }) if message == "Failed to parse API response"
+        ));
+    }
+
+    #[test]
+    fn test_api_error_response() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_api_error_response();
+
+        let client = CryptoBot::builder()
+            .api_token("test")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async { client.get_balance().await });
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ApiError {
+                code: 123,
+                message,
+                details: None
+            }) if message == "Test error message"
+        ));
+    }
+
+    #[test]
+    fn test_http_error_response() {
+        let mut ctx = TestContext::new();
+        let _m = ctx
+            .server
+            .mock("GET", "/getBalance")
+            .with_status(404)
+            .create();
+
+        let client = CryptoBot::builder()
+            .api_token("test")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async { client.get_balance().await });
+
+        assert!(matches!(result, Err(CryptoBotError::HttpError(_))));
     }
 }

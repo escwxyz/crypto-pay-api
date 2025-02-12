@@ -70,3 +70,59 @@ impl ClientBuilder<String> {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use reqwest::header::HeaderName;
+    use std::str::FromStr;
+
+    use crate::{api::ExchangeRateAPI, utils::test_utils::TestContext};
+
+    use super::*;
+
+    #[test]
+    fn test_builder_default_config() {
+        let builder = ClientBuilder::new();
+        let client = builder.api_token("test").build().unwrap();
+        assert_eq!(client.base_url, DEFAULT_API_URL);
+    }
+
+    #[test]
+    fn test_builder_custom_config() {
+        let builder = ClientBuilder::new()
+            .timeout(Duration::from_secs(30))
+            .base_url("https://test.com");
+
+        let client = builder.api_token("test").build().unwrap();
+
+        assert_eq!(client.base_url, "https://test.com".to_string());
+    }
+
+    #[test]
+    fn test_builder_custom_headers() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_exchange_rates_response();
+
+        let builder = ClientBuilder::new()
+            .headers(vec![(
+                HeaderName::from_str("X-Custom-Header").unwrap(),
+                HeaderValue::from_static("test"),
+            )])
+            .timeout(Duration::from_secs(30))
+            .base_url(ctx.server.url());
+
+        let client = builder.api_token("test").build().unwrap();
+
+        // headers are only set when making requests
+        let _ = ctx.run(async { client.get_exchange_rates().await });
+
+        assert!(client
+            .headers
+            .as_ref()
+            .map(|headers| headers.contains(&(
+                HeaderName::from_str("X-Custom-Header").unwrap(),
+                HeaderValue::from_static("test"),
+            )))
+            .unwrap_or(false));
+    }
+}

@@ -83,32 +83,3 @@ where
         code
     )))
 }
-
-// /// Deserialize a String to a PayButtonName
-// pub fn deserialize_pay_button_name<'de, D>(
-//     deserializer: D,
-// ) -> Result<Option<PayButtonName>, D::Error>
-// where
-//     D: Deserializer<'de>,
-// {
-//     #[derive(Deserialize)]
-//     #[serde(untagged)]
-//     enum StringOrNull {
-//         String(String),
-//         Null,
-//     }
-
-//     match Option::<StringOrNull>::deserialize(deserializer)? {
-//         Some(StringOrNull::String(s)) => match s.as_str() {
-//             "viewItem" => Ok(Some(PayButtonName::ViewItem)),
-//             "openChannel" => Ok(Some(PayButtonName::OpenChannel)),
-//             "openBot" => Ok(Some(PayButtonName::OpenBot)),
-//             "callback" => Ok(Some(PayButtonName::Callback)),
-//             _ => Err(serde::de::Error::custom("Invalid paid_btn_name value")),
-//         },
-//         Some(StringOrNull::Null) => Err(serde::de::Error::custom(
-//             "paid_btn_name cannot be null, either provide a valid value or omit the field",
-//         )),
-//         None => Ok(None),
-//     }
-// }
