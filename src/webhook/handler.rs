@@ -104,10 +104,9 @@ impl WebhookHandler {
         let update: WebhookUpdate = Self::parse_update(body)?;
 
         if let Some(expiration_time) = self.config.expiration_time {
-            // Verify request date
             let request_date =
                 DateTime::parse_from_rfc3339(&update.request_date).map_err(|_| CryptoBotError::WebhookError {
-                    kind: WebhookErrorKind::InvalidPayload,
+                    kind: WebhookErrorKind::InvalidPayload, // TODO: test this
                     message: "Invalid request date".to_string(),
                 })?;
 
@@ -126,7 +125,7 @@ impl WebhookHandler {
         }
 
         if let Some(handler) = &self.update_handler {
-            handler(update).await?;
+            handler(update).await?; // TODO: test this
         }
 
         Ok(WebhookResponse::ok())

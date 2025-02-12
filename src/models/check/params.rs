@@ -66,9 +66,3 @@ impl GetChecksParams {
 pub struct DeleteCheckParams {
     pub check_id: u64,
 }
-
-impl From<u64> for DeleteCheckParams {
-    fn from(check_id: u64) -> Self {
-        Self { check_id }
-    }
-}

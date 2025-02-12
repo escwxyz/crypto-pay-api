@@ -102,7 +102,7 @@ impl CryptoBot {
         };
 
         if let Some(params) = params {
-            request = request.json(params);
+            request = request.json(params); // TODO: test this
         }
 
         let response = request.send().await?;
@@ -120,6 +120,7 @@ impl CryptoBot {
         })?;
 
         if !api_response.ok {
+            // TODO: test this
             return Err(CryptoBotError::ApiError {
                 code: api_response.error_code.unwrap_or(0),
                 message: api_response.error.unwrap_or_default(),
