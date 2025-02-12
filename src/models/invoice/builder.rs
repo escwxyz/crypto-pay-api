@@ -144,6 +144,12 @@ impl CreateInvoiceParamsBuilder<Missing, Missing, Missing, Missing> {
     }
 }
 
+impl Default for CreateInvoiceParamsBuilder<Missing, Missing, Missing, Missing> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<C, P, U> CreateInvoiceParamsBuilder<Missing, C, P, U> {
     /// Set the amount for the invoice.
     pub fn amount(mut self, amount: Decimal) -> CreateInvoiceParamsBuilder<Set, C, P, U> {

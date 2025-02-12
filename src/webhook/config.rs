@@ -23,18 +23,24 @@ impl WebhookHandlerConfigBuilder {
             },
         }
     }
-
+    /// Sets the expiration time for the webhook handler
     pub fn expiration_time(mut self, duration: Duration) -> Self {
         self.config.expiration_time = Some(duration);
         self
     }
-
+    /// Disables the expiration time for the webhook handler
     pub fn disable_expiration(mut self) -> Self {
         self.config.expiration_time = None;
         self
     }
-
+    /// Builds the webhook handler config
     pub fn build(self) -> WebhookHandlerConfig {
         self.config
+    }
+}
+
+impl Default for WebhookHandlerConfigBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -121,6 +121,12 @@ impl TransferParamsBuilder<Missing, Missing, Missing, Missing> {
     }
 }
 
+impl Default for TransferParamsBuilder<Missing, Missing, Missing, Missing> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<A, M, S> TransferParamsBuilder<Missing, A, M, S> {
     /// Set the Telegram user ID for the transfer.
     pub fn user_id(mut self, user_id: u64) -> TransferParamsBuilder<Set, A, M, S> {

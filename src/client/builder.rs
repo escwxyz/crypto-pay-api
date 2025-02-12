@@ -51,6 +51,12 @@ impl ClientBuilder<NoAPIToken> {
     }
 }
 
+impl Default for ClientBuilder<NoAPIToken> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ClientBuilder<String> {
     pub fn build(self) -> CryptoBotResult<CryptoBot> {
         let client = reqwest::Client::builder().timeout(self.timeout).build()?;
