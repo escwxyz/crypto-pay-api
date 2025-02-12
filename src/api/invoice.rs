@@ -1,18 +1,18 @@
 use async_trait::async_trait;
 
 use crate::{
-    error::CryptoBotError,
-    error::CryptoBotResult,
-    models::{CreateInvoiceParams, GetInvoicesParams, Invoice},
-    validation::{ContextValidate, FieldValidate},
-    APIEndpoint, APIMethod, DeleteInvoiceParams, GetInvoicesResponse, Method,
+    client::CryptoBot,
+    error::{CryptoBotError, CryptoBotResult},
+    models::{
+        APIEndpoint, APIMethod, CreateInvoiceParams, DeleteInvoiceParams, GetInvoicesParams,
+        GetInvoicesResponse, Invoice, Method,
+    },
 };
 
-use super::{ExchangeRateAPI, InvoiceAPI};
-use crate::validation::ValidationContext;
+use super::InvoiceAPI;
 
 #[async_trait]
-impl InvoiceAPI for crate::CryptoBot {
+impl InvoiceAPI for CryptoBot {
     /// Creates a new cryptocurrency invoice
     ///
     /// An invoice is a request for cryptocurrency payment with a specific amount
@@ -38,14 +38,17 @@ impl InvoiceAPI for crate::CryptoBot {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
     ///     
-    ///     let params = CreateInvoiceParams::new()
+    ///     let params = CreateInvoiceParamsBuilder::new()
     ///         .asset(CryptoCurrencyCode::Ton)
     ///         .amount(dec!(10.5))
     ///         .description("Payment for service")
     ///         .paid_btn_name(PayButtonName::ViewItem)
-    ///         .paid_btn_url("https://example.com/order/123");
+    ///         .paid_btn_url("https://example.com/order/123")
+    ///         .build(&client)
+    ///         .await
+    ///         .unwrap();
     ///     
     ///     let invoice = client.create_invoice(&params).await?;
     ///     println!("Invoice created: {}", invoice.amount);
@@ -53,20 +56,14 @@ impl InvoiceAPI for crate::CryptoBot {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # See Also
+    /// * [Invoice](struct.Invoice.html) - The structure representing an invoice
+    /// * [CreateInvoiceParams](struct.CreateInvoiceParams.html) - The parameters for creating an invoice
     async fn create_invoice(
         &self,
         params: &CreateInvoiceParams,
     ) -> Result<Invoice, CryptoBotError> {
-        params.validate()?;
-
-        let rates = self.get_exchange_rates().await?;
-
-        let ctx = ValidationContext {
-            exchange_rates: rates,
-        };
-
-        params.validate_with_context(&ctx).await?;
-
         self.make_request(
             &APIMethod {
                 endpoint: APIEndpoint::CreateInvoice,
@@ -95,7 +92,7 @@ impl InvoiceAPI for crate::CryptoBot {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
     ///     
     ///     match client.delete_invoice(12345).await {
     ///         Ok(_) => println!("Invoice deleted successfully"),
@@ -105,6 +102,10 @@ impl InvoiceAPI for crate::CryptoBot {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # See Also
+    /// * [Invoice](struct.Invoice.html) - The structure representing an invoice
+    /// * [DeleteInvoiceParams](struct.DeleteInvoiceParams.html) - The parameters for deleting an invoice
     async fn delete_invoice(&self, invoice_id: u64) -> CryptoBotResult<bool> {
         let params = DeleteInvoiceParams { invoice_id };
         self.make_request(
@@ -135,19 +136,17 @@ impl InvoiceAPI for crate::CryptoBot {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
-    ///     
-    ///     // Get all invoices
-    ///     let all_invoices = client.get_invoices(None).await?;
-    ///     
-    ///     // Get invoices with filters
-    ///     let params = GetInvoicesParams::new()
+    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
+    ///
+    ///     let params = GetInvoicesParamsBuilder::new()
     ///         .asset(CryptoCurrencyCode::Ton)
-    ///         .status(InvoiceStatus::Paid);
-    ///     
-    ///     let paid_invoices = client.get_invoices(Some(&params)).await?;
-    ///     
-    ///     for invoice in paid_invoices {
+    ///         .status(InvoiceStatus::Paid)
+    ///         .build()
+    ///         .unwrap();
+    ///
+    ///     let invoices = client.get_invoices(Some(&params)).await?;
+    ///
+    ///     for invoice in invoices {
     ///         println!("Invoice #{}: {} {} (paid at: {})",
     ///             invoice.invoice_id,
     ///             invoice.amount,
@@ -155,7 +154,7 @@ impl InvoiceAPI for crate::CryptoBot {
     ///             invoice.paid_at.unwrap_or_default()
     ///         );
     ///     }
-    ///     
+    ///
     ///     Ok(())
     /// }
     /// ```
@@ -163,15 +162,10 @@ impl InvoiceAPI for crate::CryptoBot {
     /// # See Also
     /// * [Invoice](struct.Invoice.html) - The structure representing an invoice
     /// * [GetInvoicesParams](struct.GetInvoicesParams.html) - Available filter parameters
-    /// * [CryptoBot API Documentation](https://help.crypt.bot/crypto-pay-api#getInvoices)
     async fn get_invoices(
         &self,
         params: Option<&GetInvoicesParams>,
     ) -> CryptoBotResult<Vec<Invoice>> {
-        if let Some(params) = params {
-            params.validate()?;
-        }
-
         let response: GetInvoicesResponse = self
             .make_request(
                 &APIMethod {
@@ -193,9 +187,8 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::models::{CryptoCurrencyCode, CurrencyType};
+    use crate::models::{CreateInvoiceParamsBuilder, CryptoCurrencyCode, GetInvoicesParamsBuilder};
     use crate::utils::test_utils::TestContext;
-    use crate::CryptoBot;
 
     impl TestContext {
         pub fn mock_create_invoice_response(&mut self) -> Mock {
@@ -264,7 +257,7 @@ mod tests {
         pub fn mock_get_invoices_response_with_invoice_ids(&mut self) -> Mock {
             self.server
                 .mock("GET", "/getInvoices")
-                .match_body(json!({ "invoice_ids": "530195"}).to_string().as_str()) 
+                .match_body(json!({ "invoice_ids": "530195"}).to_string().as_str())
                 .with_header("content-type", "application/json")
                 .with_header("Crypto-Pay-API-Token", "test_token")
                 .with_body(json!({
@@ -315,18 +308,25 @@ mod tests {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_exchange_rates_response();
         let _m = ctx.mock_create_invoice_response();
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
 
-        let params = CreateInvoiceParams {
-            currency_type: Some(CurrencyType::Crypto),
-            asset: Some(CryptoCurrencyCode::Ton),
-            amount: dec!(10.5),
-            description: Some("Test invoice".to_string()),
-            expires_in: Some(3600),
-            ..Default::default()
-        };
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
 
-        let result = ctx.run(async { client.create_invoice(&params).await });
+        let result = ctx.run(async {
+            let params = CreateInvoiceParamsBuilder::new()
+                .asset(CryptoCurrencyCode::Ton)
+                .amount(dec!(10.5))
+                .description("Test invoice".to_string())
+                .expires_in(3600)
+                .build(&client)
+                .await
+                .unwrap();
+
+            client.create_invoice(&params).await
+        });
 
         println!("result: {:?}", result);
         assert!(result.is_ok());
@@ -341,8 +341,11 @@ mod tests {
     fn test_get_invoices_without_params() {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_get_invoices_response();
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
-
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
         let result = ctx.run(async { client.get_invoices(None).await });
 
         println!("result:{:?}", result);
@@ -358,12 +361,15 @@ mod tests {
     fn test_get_invoices_with_params() {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_get_invoices_response_with_invoice_ids();
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
-
-        let params = GetInvoicesParams {
-            invoice_ids: Some(vec![530195]),
-            ..Default::default()
-        };
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+        let params = GetInvoicesParamsBuilder::new()
+            .invoice_ids(vec![530195])
+            .build()
+            .unwrap();
 
         let result = ctx.run(async { client.get_invoices(Some(&params)).await });
 
@@ -382,7 +388,12 @@ mod tests {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_delete_invoice_response();
 
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
         let result = ctx.run(async { client.delete_invoice(528890).await });
 
         assert!(result.is_ok());

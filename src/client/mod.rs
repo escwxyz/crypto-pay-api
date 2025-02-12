@@ -5,7 +5,10 @@ use crate::{
     models::{APIMethod, ApiResponse, Method},
 };
 
-use builder::ClientBuilder;
+#[cfg(test)]
+use crate::models::ExchangeRate;
+
+use builder::{ClientBuilder, NoAPIToken};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -13,98 +16,17 @@ pub const DEFAULT_API_URL: &str = "https://pay.crypt.bot/api";
 pub const DEFAULT_TIMEOUT: u64 = 30;
 pub const DEFAULT_WEBHOOK_EXPIRATION_TIME: u64 = 600;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CryptoBot {
     pub(crate) api_token: String,
     pub(crate) client: reqwest::Client,
     pub(crate) base_url: String,
     pub(crate) headers: Option<Vec<(HeaderName, HeaderValue)>>,
+    #[cfg(test)]
+    pub(crate) test_rates: Option<Vec<ExchangeRate>>,
 }
 
 impl CryptoBot {
-    /// Creates a new CryptoBot client instance with default settings
-    ///
-    /// This is a convenient way to create a client with default configuration.
-    /// For more customization options, use [`builder()`](#method.builder).
-    ///
-    /// # Arguments
-    /// * `api_token` - The API token obtained from [@CryptoBot](https://t.me/CryptoBot)
-    /// * `headers` - Optional custom headers to be included in all API requests
-    ///
-    /// # Default Settings
-    /// * Base URL: `https://pay.crypt.bot/api`
-    /// * Timeout: 30 seconds
-    /// * Webhook expiration time: 600 seconds (10 minutes)
-    ///
-    /// # Example
-    /// ```
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// // Create a client with default settings
-    /// let client = CryptoBot::new("YOUR_API_TOKEN", None);
-    ///
-    /// // Create a client with custom headers
-    /// let headers = vec![(
-    ///     HeaderName::from_static("x-custom-header"),
-    ///     HeaderValue::from_static("custom_value")
-    /// )];
-    /// let client_with_headers = CryptoBot::new("YOUR_API_TOKEN", Some(headers));
-    /// ```
-    pub fn new(api_token: &str, headers: Option<Vec<(HeaderName, HeaderValue)>>) -> Self {
-        Self::builder()
-            .api_token(api_token)
-            .headers(headers)
-            .build()
-    }
-
-    /// Creates a new CryptoBot client instance with a custom base URL
-    ///
-    /// This method is useful when you need to use a different API endpoint,
-    /// such as during testing environment.
-    ///
-    /// # Arguments
-    /// * `api_token` - The API token obtained from [@CryptoBot](https://t.me/CryptoBot)
-    /// * `base_url` - The base URL of the API (e.g., "https://pay.crypt.bot/api")
-    /// * `headers` - Optional custom headers to be included in all API requests
-    ///
-    /// # Default Settings
-    /// * Timeout: 30 seconds
-    /// * Webhook expiration time: 600 seconds (10 minutes)
-    ///
-    /// # Example
-    /// ```
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// // Using the testnet API
-    /// let testnet_client = CryptoBot::new_with_base_url(
-    ///     "YOUR_API_TOKEN",
-    ///     "https://testnet-pay.crypt.bot/api",
-    ///     None
-    /// );
-    ///
-    /// // With custom headers
-    /// let headers = vec![(
-    ///     HeaderName::from_static("x-custom-header"),
-    ///     HeaderValue::from_static("custom_value")
-    /// )];
-    /// let client = CryptoBot::new_with_base_url(
-    ///     "YOUR_API_TOKEN",
-    ///     "https://pay.crypt.bot/api",
-    ///     Some(headers)
-    /// );
-    /// ```
-    pub fn new_with_base_url(
-        api_token: &str,
-        base_url: &str,
-        headers: Option<Vec<(HeaderName, HeaderValue)>>,
-    ) -> Self {
-        Self::builder()
-            .api_token(api_token)
-            .base_url(base_url)
-            .headers(headers)
-            .build()
-    }
-
     /// Returns a new builder for creating a customized CryptoBot client
     ///
     /// The builder pattern allows you to customize all aspects of the client,
@@ -115,27 +37,31 @@ impl CryptoBot {
     /// * `base_url` - Optional, defaults to "https://pay.crypt.bot/api"
     /// * `timeout` - Optional, defaults to 30 seconds
     /// * `headers` - Optional, custom headers for all requests
-    /// * `webhook_expiration_time` - Optional, defaults to 600 seconds
     ///
     /// # Example
     /// ```
     /// use crypto_pay_api::prelude::*;
     /// use std::time::Duration;
     ///
-    /// let client = CryptoBot::builder()
-    ///     .api_token("YOUR_API_TOKEN")
-    ///     .base_url("https://testnet-pay.crypt.bot/api")  // Use testnet
-    ///     .timeout(Duration::from_secs(60))               // 60 second timeout
-    ///     .headers(Some(vec![(
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), CryptoBotError> {
+    ///     let client = CryptoBot::builder()
+    ///         .api_token("YOUR_API_TOKEN")
+    ///         .base_url("https://testnet-pay.crypt.bot/api")  // Use testnet
+    ///         .timeout(Duration::from_secs(60))               // 60 second timeout
+    ///     .headers(vec![(
     ///         HeaderName::from_static("x-custom-header"),
     ///         HeaderValue::from_static("custom_value")
-    ///     )]))
-    ///     .build();
+    ///     )])
+    ///     .build()?;
+    ///
+    ///     Ok(())
+    /// }
     /// ```
     ///
     /// # See Also
     /// * [`ClientBuilder`](struct.ClientBuilder.html) - The builder type
-    pub fn builder() -> ClientBuilder {
+    pub fn builder() -> ClientBuilder<NoAPIToken> {
         ClientBuilder::new()
     }
 
@@ -146,7 +72,8 @@ impl CryptoBot {
     /// * `params` - The parameters to pass to the method
     ///
     /// # Returns
-    /// Returns Result with the response or CryptoBotError
+    /// * `Ok(R)` - The response from the API
+    /// * `Err(CryptoBotError)` - If the request fails or the response is not valid
     pub(crate) async fn make_request<T, R>(
         &self,
         method: &APIMethod,
@@ -206,5 +133,18 @@ impl CryptoBot {
         }
 
         api_response.result.ok_or(CryptoBotError::NoResult)
+    }
+
+    #[cfg(test)]
+    pub fn test_client() -> Self {
+        use crate::utils::test_utils::TestContext;
+
+        Self {
+            api_token: "test_token".to_string(),
+            client: reqwest::Client::new(),
+            base_url: "http://test.example.com".to_string(),
+            headers: None,
+            test_rates: Some(TestContext::mock_exchange_rates()),
+        }
     }
 }

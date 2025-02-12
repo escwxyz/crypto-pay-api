@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 
 use crate::{
+    client::CryptoBot,
     error::CryptoBotResult,
-    models::{APIMethod, ExchangeRate},
-    APIEndpoint, CryptoBot, Method,
+    models::{APIEndpoint, APIMethod, ExchangeRate, Method},
 };
 
 use super::ExchangeRateAPI;
@@ -31,7 +31,7 @@ impl ExchangeRateAPI for CryptoBot {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
     ///     
     ///     let rates = client.get_exchange_rates().await?;
     ///     
@@ -47,31 +47,14 @@ impl ExchangeRateAPI for CryptoBot {
     /// }
     /// ```
     ///
-    /// # Response Example
-    /// ```json
-    /// [
-    ///   {
-    ///     "is_valid": true,
-    ///     "is_crypto": true,
-    ///     "is_fiat": false,
-    ///     "source": "TON",
-    ///     "target": "USD",
-    ///     "rate": "1.857",
-    ///   },
-    ///   {
-    ///     "is_valid": true,
-    ///     "is_crypto": true,
-    ///     "is_fiat": false,
-    ///     "source": "BTC",
-    ///     "target": "USD",
-    ///     "rate": "42000.00",
-    ///   }
-    /// ]
-    /// ```
     /// # See Also
     /// * [ExchangeRate](struct.ExchangeRate.html) - The structure representing an exchange rate
-    /// * [CryptoBot API Documentation](https://help.crypt.bot/crypto-pay-api#getExchangeRates)
     async fn get_exchange_rates(&self) -> CryptoBotResult<Vec<ExchangeRate>> {
+        #[cfg(test)]
+        if let Some(rates) = &self.test_rates {
+            return Ok(rates.clone());
+        }
+
         self.make_request(
             &APIMethod {
                 endpoint: APIEndpoint::GetExchangeRates,
@@ -90,9 +73,8 @@ mod tests {
     use serde_json::json;
 
     use crate::{
-        api::InvoiceAPI, error::CryptoBotError, error::ValidationErrorKind,
-        models::CryptoCurrencyCode, utils::test_utils::TestContext, CheckAPI, CreateCheckParams,
-        CreateInvoiceParams, CurrencyType, FiatCurrencyCode, TransferAPI, TransferParams,
+        models::{CryptoCurrencyCode, FiatCurrencyCode},
+        utils::test_utils::TestContext,
     };
 
     use super::*;
@@ -147,12 +129,16 @@ mod tests {
         }
     }
 
-    // ! Checked
     #[test]
     fn test_get_exchange_rates() {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_exchange_rates_response();
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
+
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
 
         let result = ctx.run(async { client.get_exchange_rates().await });
 
@@ -165,70 +151,5 @@ mod tests {
         assert_eq!(exchange_rates[0].source, CryptoCurrencyCode::Ton);
         assert_eq!(exchange_rates[0].target, FiatCurrencyCode::Usd);
         assert_eq!(exchange_rates[0].rate, dec!(3.70824926));
-    }
-
-    // ! Checked
-    /// Check if the amount is between 1 and 25000 USD
-    #[test]
-    fn test_validation_with_exchange_rates() {
-        let mut ctx = TestContext::new();
-        let _m = ctx.mock_exchange_rates_response();
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
-
-        let params = CreateInvoiceParams {
-            currency_type: Some(CurrencyType::Crypto),
-            asset: Some(CryptoCurrencyCode::Ton),
-            amount: dec!(10000.0),
-            ..Default::default()
-        };
-
-        let result = ctx.run(async { client.create_invoice(&params).await });
-
-        assert!(matches!(
-            result,
-            Err(CryptoBotError::ValidationError {
-                kind: ValidationErrorKind::Range,
-                field: Some(field),
-                ..
-            }) if field == "amount"
-        ));
-
-        let params = CreateCheckParams {
-            asset: CryptoCurrencyCode::Ton,
-            amount: dec!(10000.0),
-            pin_to_user_id: None,
-            pin_to_username: None,
-        };
-
-        let result = ctx.run(async { client.create_check(&params).await });
-
-        assert!(matches!(
-            result,
-            Err(CryptoBotError::ValidationError {
-                kind: ValidationErrorKind::Range,
-                field: Some(field),
-                ..
-            }) if field == "amount"
-        ));
-
-        let params = TransferParams {
-            asset: CryptoCurrencyCode::Ton,
-            amount: dec!(10000.0),
-            user_id: 123456789,
-            spend_id: "test_spend_id".to_string(),
-            comment: None,
-            disable_send_notification: None,
-        };
-
-        let result = ctx.run(async { client.transfer(&params).await });
-
-        assert!(matches!(
-            result,
-            Err(CryptoBotError::ValidationError {
-                kind: ValidationErrorKind::Range,
-                field: Some(field),
-                ..
-            }) if field == "amount"
-        ));
     }
 }

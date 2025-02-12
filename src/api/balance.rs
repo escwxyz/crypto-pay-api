@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 
 use crate::{
+    client::CryptoBot,
     error::CryptoBotError,
-    models::{APIMethod, Balance},
-    APIEndpoint, CryptoBot, Method,
+    models::{APIEndpoint, APIMethod, Balance, Method},
 };
 
 use super::BalanceAPI;
@@ -31,7 +31,7 @@ impl BalanceAPI for CryptoBot {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
     ///     
     ///     let balances = client.get_balance().await?;
     ///     
@@ -42,22 +42,6 @@ impl BalanceAPI for CryptoBot {
     ///     
     ///     Ok(())
     /// }
-    /// ```
-    ///
-    /// # Response Example
-    /// ```json
-    /// [
-    ///   {
-    ///     "currency_code": "TON",
-    ///     "available": "125.32",
-    ///     "onhold": "0"
-    ///   },
-    ///   {
-    ///     "currency_code": "BTC",
-    ///     "available": "0.12345",
-    ///     "onhold": "0.00001"
-    ///   }
-    /// ]
     /// ```
     ///
     /// # See Also
@@ -118,7 +102,12 @@ mod tests {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_balance_response();
 
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
+        let client = CryptoBot::builder()
+            .api_token("api_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
         let result = ctx.run(async { client.get_balance().await });
 
         assert!(result.is_ok());

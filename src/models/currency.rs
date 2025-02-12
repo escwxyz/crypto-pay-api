@@ -21,6 +21,15 @@ pub enum CurrencyCode {
     Fiat(FiatCurrencyCode),
 }
 
+impl std::fmt::Display for CurrencyCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CurrencyCode::Crypto(code) => write!(f, "{}", code),
+            CurrencyCode::Fiat(code) => write!(f, "{}", code),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum CryptoCurrencyCode {

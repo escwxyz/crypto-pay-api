@@ -11,10 +11,9 @@ use crate::{
     error::CryptoBotResult,
     models::{
         AppStats, Balance, Check, CreateCheckParams, CreateInvoiceParams, Currency, ExchangeRate,
-        GetChecksParams, GetInvoicesParams, GetMeResponse, GetStatsParams, Invoice, Transfer,
-        TransferParams,
+        GetChecksParams, GetInvoicesParams, GetMeResponse, GetStatsParams, GetTransfersParams,
+        Invoice, Transfer, TransferParams,
     },
-    GetTransfersParams,
 };
 
 #[async_trait]

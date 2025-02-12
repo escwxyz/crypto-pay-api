@@ -26,26 +26,25 @@ Add to your `Cargo.toml`:
 ```toml
 [dependencies]
 crypto-pay-api = "0.1.0"
-tokio = { version = "1.0", features = ["full"] }
 ```
 
-### Basic Example
+### Basic Example with tokio
 
 ```rust
 use crypto_pay_api::prelude::*;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), CryptoBotError> {
     // Initialize client
-    let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build()?;
 
     // Create an invoice
-    let params = CreateInvoiceParams {
-        asset: CryptoCurrencyCode::Ton,
-        amount: dec!(10.5),
-        description: Some("Test payment".to_string()),
-        ..Default::default()
-    };
+    let params = CreateInvoiceParamsBuilder::new()
+        .asset(CryptoCurrencyCode::Ton)
+        .amount(dec!(10.5))
+        .description("Test payment".to_string())
+        .build(&client)
+        .await?;
 
     let invoice = client.create_invoice(&params).await?;
     println!("Payment URL: {}", invoice.pay_url);
@@ -89,9 +88,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 use crypto_pay_api::prelude::*;
 
 #[tokio::main]
-async fn main() {
-    let client = CryptoBot::new("YOUR_API_TOKEN", None);
-    let mut handler = client.webhook_handler();
+async fn main() -> Result<(), CryptoBotError> {
+    let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build()?;
+    let mut handler = client.webhook_handler(WebhookHandlerConfigBuilder::new().build());
 
     // Register payment callback
     handler.on_update(|update| async move {

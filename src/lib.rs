@@ -1,3 +1,13 @@
+//! crypto-pay-api
+//!
+//! A Rust client library for interacting with the CryptoPay API.
+//!
+//! # Example
+//!
+//! ```rust
+//! use crypto_pay_api::prelude::*;
+//! ```
+
 mod api;
 mod client;
 mod error;
@@ -17,4 +27,3 @@ pub mod prelude {
     pub use crate::models::*;
     pub use crate::webhook::*;
 }
-pub use prelude::*;

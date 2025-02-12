@@ -1,14 +1,15 @@
 use chrono::{DateTime, Utc};
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256};
+use std::future::Future;
 use std::pin::Pin;
-use std::{future::Future, time::Duration};
 
 use crate::{
-    client::DEFAULT_WEBHOOK_EXPIRATION_TIME,
     error::{CryptoBotError, WebhookErrorKind},
     models::{WebhookResponse, WebhookUpdate},
 };
+
+use super::WebhookHandlerConfig;
 
 pub type WebhookHandlerFn = Box<
     dyn Fn(WebhookUpdate) -> Pin<Box<dyn Future<Output = Result<(), CryptoBotError>> + Send>>
@@ -18,62 +19,19 @@ pub type WebhookHandlerFn = Box<
 
 pub struct WebhookHandler {
     api_token: String,
-    webhook_expiration_time: Option<Duration>,
+    config: WebhookHandlerConfig,
     update_handler: Option<WebhookHandlerFn>,
 }
 
 impl WebhookHandler {
-    pub(crate) fn new(api_token: &str) -> Self {
+    pub(crate) fn with_config(api_token: impl Into<String>, config: WebhookHandlerConfig) -> Self {
         Self {
-            api_token: api_token.to_string(),
-            webhook_expiration_time: Some(Duration::from_secs(DEFAULT_WEBHOOK_EXPIRATION_TIME)),
+            api_token: api_token.into(),
+            config,
             update_handler: None,
         }
     }
 
-    pub(crate) fn with_expiration_time(mut self, duration: Duration) -> Self {
-        self.webhook_expiration_time = Some(duration);
-        self
-    }
-
-    /// Parses a webhook update from JSON string
-    ///
-    /// # Arguments
-    /// * `json` - The JSON string to parse
-    ///
-    /// # Returns
-    /// * `Ok(WebhookUpdate)` - The parsed webhook update
-    /// * `Err(CryptoBotError)` - If the JSON is invalid or doesn't match the expected format
-    ///
-    /// # Example
-    /// ```
-    /// use crypto_pay_api::WebhookHandler;
-    ///
-    /// let json = r#"{
-    ///        "update_id": 1,
-    ///        "update_type": "invoice_paid",
-    ///        "request_date": "2024-02-02T12:11:02Z",
-    ///        "payload": {
-    ///            "invoice_id": 528890,
-    ///            "hash": "IVDoTcNBYEfk",
-    ///            "currency_type": "crypto",
-    ///            "asset": "TON",
-    ///            "amount": "10.5",
-    ///            "pay_url": "https://t.me/CryptoTestnetBot?start=IVDoTcNBYEfk",
-    ///            "bot_invoice_url": "https://t.me/CryptoTestnetBot?start=IVDoTcNBYEfk",
-    ///            "mini_app_invoice_url": "https://t.me/CryptoTestnetBot/app?startapp=invoice-IVDoTcNBYEfk",
-    ///            "web_app_invoice_url": "https://testnet-app.send.tg/invoices/IVDoTcNBYEfk",
-    ///            "description": "Test invoice",
-    ///            "status": "paid",
-    ///            "created_at": "2025-02-08T12:11:01.341Z",
-    ///            "allow_comments": true,
-    ///            "allow_anonymous": true
-    ///        }
-    /// }"#;
-    ///
-    /// let result = WebhookHandler::parse_update(json);
-    /// assert!(result.is_ok());
-    /// ```
     pub fn parse_update(json: &str) -> Result<WebhookUpdate, CryptoBotError> {
         serde_json::from_str(json).map_err(|e| CryptoBotError::WebhookError {
             kind: WebhookErrorKind::InvalidPayload,
@@ -98,15 +56,20 @@ impl WebhookHandler {
     /// ```
     /// use crypto_pay_api::prelude::*;
     ///
-    /// let client = CryptoBot::new("your_api_token", None);
-    /// let handler = client.webhook_handler();
-    /// let body = r#"{"update_id": 1, "update_type": "invoice_paid"}"#;
-    /// let signature = "1234567890abcdef"; // The actual signature from the request header
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), CryptoBotError> {
+    ///     let client = CryptoBot::builder().api_token("your_api_token").build().unwrap();
+    ///     let handler = client.webhook_handler(WebhookHandlerConfigBuilder::new().build());
+    ///     let body = r#"{"update_id": 1, "update_type": "invoice_paid"}"#;
+    ///     let signature = "1234567890abcdef"; // The actual signature from the request header
     ///
-    /// if handler.verify_signature(body, signature) {
-    ///     println!("Signature is valid");
-    /// } else {
-    ///     println!("Invalid signature");
+    ///     if handler.verify_signature(body, signature) {
+    ///         println!("Signature is valid");
+    ///     } else {
+    ///         println!("Invalid signature");
+    ///     }
+    ///
+    ///     Ok(())
     /// }
     /// ```
     pub fn verify_signature(&self, body: &str, signature: &str) -> bool {
@@ -141,55 +104,31 @@ impl WebhookHandler {
     /// # Errors
     /// * `WebhookErrorKind::InvalidPayload` - If the JSON is invalid or missing required fields
     /// * `WebhookErrorKind::Expired` - If the request is older than the expiration time
-    ///
-    /// # Example
-    /// ```
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// async fn handle_webhook(body: String, signature: &str, handler: &WebhookHandler) {
-    ///     // First verify the webhook signature
-    ///     if !handler.verify_signature(&body, signature) {
-    ///         eprintln!("Invalid signature");
-    ///         return;
-    ///     }
-    ///     
-    ///     // Then handle the update
-    ///     match handler.handle_update(&body).await {
-    ///         Ok(_) => println!("Webhook handled successfully"),
-    ///         Err(e) => match e {
-    ///             CryptoBotError::WebhookError { kind: WebhookErrorKind::Expired, .. } => {
-    ///                 eprintln!("Webhook request too old");
-    ///             }
-    ///             _ => eprintln!("Error handling webhook: {}", e),
-    ///         },
-    ///     }
-    /// }
-    /// ```
     pub async fn handle_update(&self, body: &str) -> Result<WebhookResponse, CryptoBotError> {
         let update: WebhookUpdate = Self::parse_update(body)?;
 
-        // Verify request date
-        let request_date = DateTime::parse_from_rfc3339(&update.request_date).map_err(|_| {
-            CryptoBotError::WebhookError {
-                kind: WebhookErrorKind::InvalidPayload,
-                message: "Invalid request date".to_string(),
+        if let Some(expiration_time) = self.config.expiration_time {
+            // Verify request date
+            let request_date =
+                DateTime::parse_from_rfc3339(&update.request_date).map_err(|_| {
+                    CryptoBotError::WebhookError {
+                        kind: WebhookErrorKind::InvalidPayload,
+                        message: "Invalid request date".to_string(),
+                    }
+                })?;
+
+            let age = Utc::now().signed_duration_since(request_date.with_timezone(&Utc));
+
+            let webhook_expiration_time = expiration_time.as_secs();
+
+            let webhook_expiration = chrono::Duration::seconds(webhook_expiration_time as i64);
+
+            if age > webhook_expiration {
+                return Err(CryptoBotError::WebhookError {
+                    kind: WebhookErrorKind::Expired,
+                    message: "Webhook request too old".to_string(),
+                });
             }
-        })?;
-
-        let age = Utc::now().signed_duration_since(request_date.with_timezone(&Utc));
-
-        let webhook_expiration_time = self
-            .webhook_expiration_time
-            .unwrap_or(Duration::from_secs(DEFAULT_WEBHOOK_EXPIRATION_TIME))
-            .as_secs();
-
-        let webhook_expiration = chrono::Duration::seconds(webhook_expiration_time as i64);
-
-        if age > webhook_expiration {
-            return Err(CryptoBotError::WebhookError {
-                kind: WebhookErrorKind::Expired,
-                message: "Webhook request too old".to_string(),
-            });
         }
 
         if let Some(handler) = &self.update_handler {
@@ -224,8 +163,8 @@ impl WebhookHandler {
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
-    ///     let mut handler = client.webhook_handler();
+    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
+    ///     let mut handler = client.webhook_handler(WebhookHandlerConfigBuilder::new().build());
     ///
     ///     handler.on_update(|update| async move {
     ///         match (update.update_type, update.payload) {
@@ -255,7 +194,10 @@ impl WebhookHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{InvoiceStatus, UpdateType, WebhookPayload};
+    use crate::{
+        models::{InvoiceStatus, UpdateType, WebhookPayload},
+        webhook::WebhookHandlerConfigBuilder,
+    };
     use chrono::Utc;
     use serde_json::json;
 
@@ -264,7 +206,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_webhook_handler() {
-        let mut handler = WebhookHandler::new("test_token");
+        let mut handler =
+            WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
 
         let received = Arc::new(Mutex::new(None));
         let received_clone = received.clone();
@@ -319,7 +262,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_default_webhook_expiration() {
-        let handler = WebhookHandler::new("test_token");
+        let handler =
+            WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
 
         let date = (Utc::now() - chrono::Duration::minutes(3)).to_rfc3339();
 
@@ -351,8 +295,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_custom_webhook_expiration() {
-        let handler =
-            WebhookHandler::new("test_token").with_expiration_time(Duration::from_secs(60));
+        let handler = WebhookHandler::with_config(
+            "test_token",
+            WebhookHandlerConfigBuilder::new()
+                .expiration_time(Duration::from_secs(60))
+                .build(),
+        );
 
         let old_date = (Utc::now() - chrono::Duration::minutes(2)).to_rfc3339();
 
@@ -391,7 +339,7 @@ mod tests {
 
     #[test]
     fn test_webhook_signature_verification() {
-        let handler = WebhookHandler::new("test_token");
+        let handler = WebhookHandler::with_config("test_token", WebhookHandlerConfig::default());
         let body = json!({
             "update_id": 1,
             "update_type": "invoice_paid",

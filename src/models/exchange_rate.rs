@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{CryptoCurrencyCode, FiatCurrencyCode};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExchangeRate {
     /// True, if the received rate is up-to-date.
     pub is_valid: bool,

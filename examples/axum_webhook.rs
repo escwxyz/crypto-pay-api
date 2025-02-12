@@ -7,7 +7,7 @@ use axum::{
     routing::post,
     Router,
 };
-use crypto_pay_api::{CryptoBot, WebhookHandler};
+use crypto_pay_api::prelude::*;
 use std::sync::Arc;
 
 async fn webhook_middleware(
@@ -43,9 +43,12 @@ async fn webhook_middleware(
 
 #[tokio::main]
 async fn main() {
-    let client = CryptoBot::new("your_token", None);
+    let client = CryptoBot::builder()
+        .api_token("your_token")
+        .build()
+        .unwrap();
 
-    let mut webhook_handler = client.webhook_handler();
+    let mut webhook_handler = client.webhook_handler(WebhookHandlerConfigBuilder::new().build());
 
     // Register handlers
     webhook_handler.on_update(|update| async move {

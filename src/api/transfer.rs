@@ -1,32 +1,59 @@
 use crate::{
+    client::CryptoBot,
     error::CryptoBotResult,
-    models::{APIMethod, Method, Transfer, TransferParams},
-    validation::{ContextValidate, FieldValidate, ValidationContext},
-    APIEndpoint, CryptoBot, GetTransfersParams, GetTransfersResponse,
+    models::{
+        APIEndpoint, APIMethod, GetTransfersParams, GetTransfersResponse, Method, Transfer,
+        TransferParams,
+    },
 };
 
-use super::{ExchangeRateAPI, TransferAPI};
+use super::TransferAPI;
 
 #[async_trait::async_trait]
 impl TransferAPI for CryptoBot {
     /// Transfer cryptocurrency to a user
     ///
     /// # Arguments
-    /// * `params` - Parameters for the transfer
+    /// * `params` - Parameters for the transfer, including:
+    ///   - `user_id`: Telegram user ID
+    ///   - `asset`: Cryptocurrency code (e.g., "TON", "BTC")
+    ///   - `amount`: Amount to transfer
+    ///   - `spend_id`: Optional unique ID to ensure idempotence
+    ///   - `comment`: Optional comment for transfer
+    ///   - `disable_send_notification`: Optional flag to disable notification
     ///
     /// # Returns
-    /// Returns Result with transfer information or CryptoBotError
+    /// Returns Result containing transfer information or CryptoBotError
+    ///
+    /// # Example
+    /// ```no_run
+    /// use crypto_pay_api::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> CryptoBotResult<()> {
+    ///     let client = CryptoBot::builder().api_token("your_token").build()?;
+    ///
+    ///     let params = TransferParamsBuilder::new()
+    ///         .user_id(123456789)
+    ///         .asset(CryptoCurrencyCode::Ton)
+    ///         .amount(dec!(10.5))
+    ///         .spend_id("unique_id")
+    ///         .comment("Payment for services")
+    ///         .build(&client)
+    ///         .await?;
+    ///
+    ///     let transfer = client.transfer(&params).await?;
+    ///     
+    ///     println!("Transfer ID: {}", transfer.transfer_id);
+    ///     
+    ///     Ok(())
+    /// }
+    /// ```
+    ///
+    /// # See also
+    /// * [GetTransfersParamsBuilder](crate::models::GetTransfersParamsBuilder)
+    /// * [TransferParamsBuilder](crate::models::TransferParamsBuilder)
     async fn transfer(&self, params: &TransferParams) -> CryptoBotResult<Transfer> {
-        params.validate()?;
-
-        let rates = self.get_exchange_rates().await?;
-
-        let ctx = ValidationContext {
-            exchange_rates: rates,
-        };
-
-        params.validate_with_context(&ctx).await?;
-
         self.make_request(
             &APIMethod {
                 endpoint: APIEndpoint::Transfer,
@@ -39,21 +66,46 @@ impl TransferAPI for CryptoBot {
     /// Get transfers history
     ///
     /// # Arguments
-    /// * `asset` - Optional filter by asset
-    /// * `transfer_ids` - Optional list of transfer IDs to filter
-    /// * `offset` - Optional offset for pagination
-    /// * `count` - Optional count of transfers to return
+    /// * `params` - Optional parameters to filter transfers:
+    ///   - `asset`: Filter by cryptocurrency code
+    ///   - `transfer_ids`: List of specific transfer IDs to retrieve
+    ///   - `spend_id`: Unique ID to filter transfers by spend ID
+    ///   - `offset`: Number of records to skip (for pagination)
+    ///   - `count`: Maximum number of records to return (1-1000)
     ///
     /// # Returns
-    /// Returns Result with vector of transfers or CryptoBotError
+    /// Returns Result containing a vector of transfers or CryptoBotError
+    ///
+    /// # Example
+    /// ```no_run
+    /// use crypto_pay_api::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> CryptoBotResult<()> {
+    ///     let client = CryptoBot::builder().api_token("your_token").build()?;
+    ///
+    ///     // Get all transfers
+    ///     let all_transfers = client.get_transfers(None).await?;
+    ///
+    ///     // Get filtered transfers
+    ///     let params = GetTransfersParamsBuilder::new()
+    ///         .asset(CryptoCurrencyCode::Ton)
+    ///         .transfer_ids(vec![1, 2, 3])
+    ///         .count(10)
+    ///         .build()?;
+    ///
+    ///     let filtered_transfers = client.get_transfers(Some(&params)).await?;
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    ///
+    /// # See also
+    /// * [GetTransfersParamsBuilder](crate::models::GetTransfersParamsBuilder)
     async fn get_transfers(
         &self,
         params: Option<&GetTransfersParams>,
     ) -> CryptoBotResult<Vec<Transfer>> {
-        if let Some(params) = params {
-            params.validate()?;
-        }
-
         let response: GetTransfersResponse = self
             .make_request(
                 &APIMethod {
@@ -75,11 +127,13 @@ mod tests {
     use serde_json::json;
 
     use crate::{
-        models::{CryptoCurrencyCode, TransferStatus},
+        api::TransferAPI,
+        client::CryptoBot,
+        models::{
+            CryptoCurrencyCode, GetTransfersParamsBuilder, TransferParamsBuilder, TransferStatus,
+        },
         utils::test_utils::TestContext,
     };
-
-    use super::*;
 
     impl TestContext {
         pub fn mock_transfer_response(&mut self) -> Mock {
@@ -165,24 +219,30 @@ mod tests {
         }
     }
 
-    // ! Checked
     #[test]
     fn test_transfer() {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_exchange_rates_response();
         let _m = ctx.mock_transfer_response();
 
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
-        let params = TransferParams {
-            user_id: 123456789,
-            asset: CryptoCurrencyCode::Ton,
-            amount: dec!(10.5),
-            spend_id: "test_spend_id".to_string(),
-            comment: Some("test_comment".to_string()),
-            disable_send_notification: None,
-        };
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
 
-        let result = ctx.run(async { client.transfer(&params).await });
+        let result = ctx.run(async {
+            let params = TransferParamsBuilder::new()
+                .user_id(123456789)
+                .asset(CryptoCurrencyCode::Ton)
+                .amount(dec!(10.5))
+                .spend_id("test_spend_id".to_string())
+                .comment("test_comment".to_string())
+                .build(&client)
+                .await
+                .unwrap();
+            client.transfer(&params).await
+        });
 
         println!("result:{:?}", result);
 
@@ -196,19 +256,22 @@ mod tests {
         assert_eq!(transfer.status, TransferStatus::Completed);
     }
 
-    // ! Checked
     #[test]
     fn test_get_transfers_without_params() {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_get_transfers_response_without_params();
 
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
 
-        let params = GetTransfersParams {
-            asset: Some(CryptoCurrencyCode::Ton),
-            transfer_ids: Some(vec![1]),
-            ..Default::default()
-        };
+        let params = GetTransfersParamsBuilder::new()
+            .asset(CryptoCurrencyCode::Ton)
+            .transfer_ids(vec![1])
+            .build()
+            .unwrap();
 
         let result = ctx.run(async { client.get_transfers(Some(&params)).await });
 
@@ -222,22 +285,23 @@ mod tests {
         assert_eq!(transfer.status, TransferStatus::Completed);
     }
 
-    // ! Checked
     #[test]
     fn test_get_transfers_with_transfer_ids() {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_get_transfers_response_with_transfer_ids();
 
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
 
-        let result = ctx.run(async {
-            client
-                .get_transfers(Some(&GetTransfersParams {
-                    transfer_ids: Some(vec![1]),
-                    ..Default::default()
-                }))
-                .await
-        });
+        let params = GetTransfersParamsBuilder::new()
+            .transfer_ids(vec![1])
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async { client.get_transfers(Some(&params)).await });
 
         assert!(result.is_ok());
         let transfers = result.unwrap();

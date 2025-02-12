@@ -1,14 +1,13 @@
-mod app_stats;
 mod balance;
 mod check;
 mod currency;
 mod exchange_rate;
 mod invoice;
 mod response;
+mod stats;
 mod transfer;
 mod webhook;
 
-pub use app_stats::*;
 pub use balance::*;
 pub use check::*;
 pub use currency::*;
@@ -16,6 +15,7 @@ pub use exchange_rate::*;
 pub use invoice::*;
 pub use response::*;
 use serde::{Deserialize, Serialize};
+pub use stats::*;
 pub use transfer::*;
 pub use webhook::*;
 
@@ -78,3 +78,6 @@ pub enum PayButtonName {
     #[serde(rename = "callback")]
     Callback,
 }
+
+pub struct Missing;
+pub struct Set;

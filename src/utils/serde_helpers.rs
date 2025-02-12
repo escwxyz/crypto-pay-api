@@ -1,7 +1,7 @@
 use rust_decimal::Decimal;
 use serde::{de, Deserialize, Deserializer};
 
-use crate::{CryptoCurrencyCode, CurrencyCode, FiatCurrencyCode};
+use crate::models::{CryptoCurrencyCode, CurrencyCode, FiatCurrencyCode};
 
 pub fn serialize_comma_separated_list<S>(
     ids: &Option<Vec<u64>>,

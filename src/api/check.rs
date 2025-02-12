@@ -1,13 +1,15 @@
 use async_trait::async_trait;
 
 use crate::{
+    client::CryptoBot,
     error::CryptoBotError,
-    models::{APIMethod, Check, CreateCheckParams, GetChecksParams},
-    validation::{ContextValidate, FieldValidate, ValidationContext},
-    APIEndpoint, CryptoBot, DeleteCheckParams, GetChecksResponse, Method,
+    models::{
+        APIEndpoint, APIMethod, Check, CreateCheckParams, DeleteCheckParams, GetChecksParams,
+        GetChecksResponse, Method,
+    },
 };
 
-use super::{CheckAPI, ExchangeRateAPI};
+use super::CheckAPI;
 
 #[async_trait]
 impl CheckAPI for CryptoBot {
@@ -36,11 +38,12 @@ impl CheckAPI for CryptoBot {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
     ///     
-    ///     let params = CreateCheckParams::new()
+    ///     let params = CreateCheckParamsBuilder::new()
     ///         .asset(CryptoCurrencyCode::Ton)
-    ///         .amount(dec!(10.5));
+    ///         .amount(dec!(10.5))
+    ///         .build(&client).await?;
     ///     
     ///     let check = client.create_check(&params).await?;
     ///     println!("Check created: {}", check.check_id);
@@ -48,17 +51,11 @@ impl CheckAPI for CryptoBot {
     ///     Ok(())
     /// }
     /// ```
+    ///
+    /// # See Also
+    /// * [Check](struct.Check.html) - The structure representing a check
+    /// * [CreateCheckParams](struct.CreateCheckParams.html) - The parameters for creating a check
     async fn create_check(&self, params: &CreateCheckParams) -> Result<Check, CryptoBotError> {
-        params.validate()?;
-
-        let rates = self.get_exchange_rates().await?;
-
-        let ctx = ValidationContext {
-            exchange_rates: rates,
-        };
-
-        params.validate_with_context(&ctx).await?;
-
         self.make_request(
             &APIMethod {
                 endpoint: APIEndpoint::CreateCheck,
@@ -86,7 +83,7 @@ impl CheckAPI for CryptoBot {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
     ///     
     ///     match client.delete_check(12345).await {
     ///         Ok(_) => println!("Check deleted successfully"),
@@ -127,15 +124,17 @@ impl CheckAPI for CryptoBot {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::new("YOUR_API_TOKEN", None);
+    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
     ///     
     ///     // Get all checks
     ///     let all_checks = client.get_checks(None).await?;
     ///     
     ///     // Get checks with filters
-    ///     let params = GetChecksParams::new()
+    ///     let params = GetChecksParamsBuilder::new()
     ///         .asset(CryptoCurrencyCode::Ton)
-    ///         .status(CheckStatus::Active);
+    ///         .status(CheckStatus::Active)
+    ///         .build()
+    ///         .unwrap();
     ///     
     ///     let filtered_checks = client.get_checks(Some(&params)).await?;
     ///     
@@ -151,23 +150,6 @@ impl CheckAPI for CryptoBot {
     /// }
     /// ```
     ///
-    /// # Response Example
-    /// ```json
-    /// {
-    ///   "items": [
-    ///     {
-    ///       "check_id": 12345,
-    ///       "asset": "TON",
-    ///       "amount": "10.5",
-    ///       "status": "active",
-    ///       "created_at": "2024-01-01T12:00:00.000Z",
-    ///       "check_link": "https://t.me/CryptoBot?start=check_abc123",
-    ///       "description": "Test check payment"
-    ///     }
-    ///   ]
-    /// }
-    /// ```
-    ///
     /// # See Also
     /// * [Check](struct.Check.html) - The structure representing a check
     /// * [GetChecksParams](struct.GetChecksParams.html) - Available filter parameters
@@ -176,10 +158,6 @@ impl CheckAPI for CryptoBot {
         &self,
         params: Option<&GetChecksParams>,
     ) -> Result<Vec<Check>, CryptoBotError> {
-        if let Some(params) = params {
-            params.validate()?;
-        }
-
         let response: GetChecksResponse = self
             .make_request(
                 &APIMethod {
@@ -200,7 +178,10 @@ mod tests {
     use rust_decimal_macros::dec;
     use serde_json::json;
 
-    use crate::{utils::test_utils::TestContext, CryptoCurrencyCode};
+    use crate::{
+        models::{CreateCheckParamsBuilder, CryptoCurrencyCode, GetChecksParamsBuilder},
+        utils::test_utils::TestContext,
+    };
 
     use super::*;
 
@@ -296,23 +277,27 @@ mod tests {
         }
     }
 
-    // ! Checked
     #[test]
     fn test_create_check() {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_exchange_rates_response();
         let _m = ctx.mock_create_check_response();
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
+
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
 
         let result = ctx.run(async {
-            client
-                .create_check(&CreateCheckParams {
-                    asset: CryptoCurrencyCode::Ton,
-                    amount: dec!(10.0),
-                    pin_to_user_id: None,
-                    pin_to_username: None,
-                })
+            let params = CreateCheckParamsBuilder::new()
+                .asset(CryptoCurrencyCode::Ton)
+                .amount(dec!(10.0))
+                .build(&client)
                 .await
+                .unwrap();
+
+            client.create_check(&params).await
         });
 
         assert!(result.is_ok());
@@ -323,12 +308,16 @@ mod tests {
         assert_eq!(check.amount, dec!(10.0));
     }
 
-    // ! Checked
     #[test]
     fn test_get_checks_without_params() {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_get_checks_response_without_params();
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
+
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
 
         let result = ctx.run(async { client.get_checks(None).await });
 
@@ -339,21 +328,23 @@ mod tests {
         assert_eq!(checks[0].check_id, 123);
     }
 
-    // ! Checked
     #[test]
     fn test_get_checks_with_check_ids() {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_get_checks_response_with_check_ids();
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
 
-        let result = ctx.run(async {
-            client
-                .get_checks(Some(&GetChecksParams {
-                    check_ids: Some(vec![123]),
-                    ..Default::default()
-                }))
-                .await
-        });
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let params = GetChecksParamsBuilder::new()
+            .check_ids(vec![123])
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async { client.get_checks(Some(&params)).await });
 
         assert!(result.is_ok());
 
@@ -362,12 +353,16 @@ mod tests {
         assert_eq!(checks[0].check_id, 123);
     }
 
-    // ! Checked
     #[test]
     fn test_delete_check() {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_delete_check_response();
-        let client = CryptoBot::new_with_base_url("test_token", &ctx.server.url(), None);
+
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
 
         let result = ctx.run(async { client.delete_check(123).await });
 
