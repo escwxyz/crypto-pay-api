@@ -433,16 +433,21 @@ mod tests {
         assert_eq!(params.fiat, None);
     }
 
-    // fn test_get_invoices_params_builder_custom_config() {
-    //     let params = GetInvoicesParamsBuilder::new()
-    //         .asset(CryptoCurrencyCode::Ton)
-    //         .fiat(FiatCurrencyCode::Usd)
-    //         .build()
-    //         .unwrap();
+    #[test]
+    fn test_get_invoices_params_builder_custom_config() {
+        let params = GetInvoicesParamsBuilder::new()
+            .asset(CryptoCurrencyCode::Ton)
+            .fiat(FiatCurrencyCode::Usd)
+            .status(InvoiceStatus::Paid)
+            .offset(2)
+            .build()
+            .unwrap();
 
-    //     assert_eq!(params.asset, Some(CryptoCurrencyCode::Ton));
-    //     assert_eq!(params.fiat, Some(FiatCurrencyCode::Usd));
-    // }
+        assert_eq!(params.asset, Some(CryptoCurrencyCode::Ton));
+        assert_eq!(params.fiat, Some(FiatCurrencyCode::Usd));
+        assert_eq!(params.status, Some(InvoiceStatus::Paid));
+        assert_eq!(params.offset, Some(2));
+    }
 
     #[test]
     fn test_get_invoices_params_builder_invalid_count() {
@@ -475,6 +480,37 @@ mod tests {
         assert_eq!(params.accept_asset, None);
         assert_eq!(params.description, None);
         assert_eq!(params.hidden_message, None);
+    }
+
+    #[tokio::test]
+    async fn test_create_invoice_params_builder_custom_config() {
+        let client = CryptoBot::test_client();
+        let params = CreateInvoiceParamsBuilder::default()
+            .amount(Decimal::from(100))
+            .asset(CryptoCurrencyCode::Ton)
+            .accept_asset(vec![CryptoCurrencyCode::Ton, CryptoCurrencyCode::Usdt])
+            .allow_comments(false)
+            .allow_anonymous(false)
+            .paid_btn_name(PayButtonName::ViewItem)
+            .paid_btn_url("https://example.com")
+            .description("test")
+            .hidden_message("test")
+            .payload("test")
+            .build(&client)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            params.accept_asset,
+            Some(vec![CryptoCurrencyCode::Ton, CryptoCurrencyCode::Usdt])
+        );
+        assert_eq!(params.allow_comments, Some(false));
+        assert_eq!(params.allow_anonymous, Some(false));
+        assert_eq!(params.paid_btn_name, Some(PayButtonName::ViewItem));
+        assert_eq!(params.paid_btn_url, Some("https://example.com".to_string()));
+        assert_eq!(params.description, Some("test".to_string()));
+        assert_eq!(params.hidden_message, Some("test".to_string()));
+        assert_eq!(params.payload, Some("test".to_string()));
     }
 
     #[tokio::test]

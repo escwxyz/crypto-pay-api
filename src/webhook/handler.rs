@@ -171,7 +171,6 @@ impl WebhookHandler {
     ///             (UpdateType::InvoicePaid, WebhookPayload::InvoicePaid(invoice)) => {
     ///                 println!("Payment received!");
     ///                 println!("Amount: {} {}", invoice.amount, invoice.asset.unwrap());
-    ///                 println!("Status: {}", invoice.status);
     ///                 
     ///                 // Process the payment...
     ///             }

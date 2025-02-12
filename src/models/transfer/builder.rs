@@ -258,10 +258,14 @@ mod tests {
     fn test_get_transfers_params() {
         let params = GetTransfersParamsBuilder::new()
             .asset(CryptoCurrencyCode::Ton)
+            .offset(2)
+            .spend_id("spend_id")
             .build()
             .unwrap();
 
         assert_eq!(params.asset, Some(CryptoCurrencyCode::Ton));
+        assert_eq!(params.offset, Some(2));
+        assert_eq!(params.spend_id, Some("spend_id".to_string()));
     }
 
     #[test]
@@ -304,7 +308,7 @@ mod tests {
     async fn test_transfer_params_invalid_spend_id() {
         let client = CryptoBot::test_client();
 
-        let result = TransferParamsBuilder::new()
+        let result = TransferParamsBuilder::default()
             .user_id(123456789)
             .asset(CryptoCurrencyCode::Ton)
             .amount(Decimal::from(100))
@@ -341,6 +345,29 @@ mod tests {
                 field: Some(field),
                 ..
             }) if field == "amount"
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_transfer_params_validate_comments() {
+        let client = CryptoBot::test_client();
+
+        let result = TransferParamsBuilder::new()
+            .user_id(123456789)
+            .asset(CryptoCurrencyCode::Ton)
+            .amount(Decimal::from(100))
+            .spend_id("test_spend_id")
+            .comment("x".repeat(1025))
+            .build(&client)
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                kind: ValidationErrorKind::Range,
+                field: Some(field),
+                ..
+            }) if field == "comment"
         ));
     }
 }

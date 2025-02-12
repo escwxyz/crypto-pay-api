@@ -110,17 +110,17 @@ pub struct Invoice {
 }
 
 // Customized methods to put here in the struct
-impl Invoice {
-    pub fn is_paid(&self) -> bool {
-        self.status == InvoiceStatus::Paid
-    }
+// impl Invoice {
+//     pub fn is_paid(&self) -> bool {
+//         self.status == InvoiceStatus::Paid
+//     }
 
-    pub fn is_expired(&self) -> bool {
-        self.status == InvoiceStatus::Expired
-    }
+//     pub fn is_expired(&self) -> bool {
+//         self.status == InvoiceStatus::Expired
+//     }
 
-    // TODO
-}
+//     // TODO
+// }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 #[serde(rename_all = "lowercase")]
@@ -128,14 +128,4 @@ pub enum InvoiceStatus {
     Active,
     Paid,
     Expired,
-}
-
-impl std::fmt::Display for InvoiceStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            InvoiceStatus::Active => write!(f, "active"),
-            InvoiceStatus::Paid => write!(f, "paid"),
-            InvoiceStatus::Expired => write!(f, "expired"),
-        }
-    }
 }
