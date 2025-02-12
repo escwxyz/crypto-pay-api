@@ -260,6 +260,62 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_webhook_handler_invalid_request_date() {
+        let handler =
+            WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
+
+        let json = json!({
+            "update_id": 1,
+            "update_type": "invoice_paid",
+            "request_date": "invalid_date",
+        });
+
+        let result = handler.handle_update(&json.to_string()).await;
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::WebhookError {
+                kind: WebhookErrorKind::InvalidPayload,
+                ..
+            })
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_webhook_handler_with_disabled_expiration() {
+        let handler = WebhookHandler::with_config(
+            "test_token",
+            WebhookHandlerConfigBuilder::new()
+                .disable_expiration()
+                .build(),
+        );
+
+        let json = json!({
+            "update_id": 1,
+            "update_type": "invoice_paid",
+            "request_date": Utc::now().to_rfc3339(),
+            "payload": {
+                "invoice_id": 528890,
+                "hash": "IVDoTcNBYEfk",
+                "currency_type": "crypto",
+                "asset": "TON",
+                "amount": "10.5",
+                "pay_url": "https://t.me/CryptoTestnetBot?start=IVDoTcNBYEfk",
+                "bot_invoice_url": "https://t.me/CryptoTestnetBot?start=IVDoTcNBYEfk",
+                "mini_app_invoice_url": "https://t.me/CryptoTestnetBot/app?startapp=invoice-IVDoTcNBYEfk",
+                "web_app_invoice_url": "https://testnet-app.send.tg/invoices/IVDoTcNBYEfk",
+                "description": "Test invoice",
+                "status": "paid",
+                "created_at": "2025-02-08T12:11:01.341Z",
+                "allow_comments": true,
+                "allow_anonymous": true
+            }
+        });
+
+        let result = handler.handle_update(&json.to_string()).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
     async fn test_default_webhook_expiration() {
         let handler =
             WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());

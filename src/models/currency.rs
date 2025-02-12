@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::utils::deserialize_currency_code;
 use serde::{Deserialize, Serialize};
 
@@ -21,7 +23,7 @@ pub enum CurrencyCode {
     Fiat(FiatCurrencyCode),
 }
 
-impl std::fmt::Display for CurrencyCode {
+impl Display for CurrencyCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CurrencyCode::Crypto(code) => write!(f, "{}", code),
@@ -46,7 +48,7 @@ pub enum CryptoCurrencyCode {
     Jet,
 }
 
-impl std::fmt::Display for CryptoCurrencyCode {
+impl Display for CryptoCurrencyCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -79,7 +81,7 @@ pub enum FiatCurrencyCode {
     Ils,
 }
 
-impl std::fmt::Display for FiatCurrencyCode {
+impl Display for FiatCurrencyCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -92,6 +94,12 @@ pub enum CurrencyType {
     Fiat,
 }
 
+impl Display for CurrencyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 impl From<CryptoCurrencyCode> for CurrencyCode {
     fn from(code: CryptoCurrencyCode) -> Self {
         CurrencyCode::Crypto(code)
@@ -101,5 +109,67 @@ impl From<CryptoCurrencyCode> for CurrencyCode {
 impl From<FiatCurrencyCode> for CurrencyCode {
     fn from(code: FiatCurrencyCode) -> Self {
         CurrencyCode::Fiat(code)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_currency_type_serialization() {
+        let crypto = CurrencyType::Crypto;
+        let fiat = CurrencyType::Fiat;
+
+        assert_eq!(serde_json::to_string(&crypto).unwrap(), "\"crypto\"");
+        assert_eq!(serde_json::to_string(&fiat).unwrap(), "\"fiat\"");
+    }
+
+    #[test]
+    fn test_crypto_currency_code_serialization() {
+        let btc = CryptoCurrencyCode::Btc;
+        let ton = CryptoCurrencyCode::Ton;
+
+        assert_eq!(serde_json::to_string(&btc).unwrap(), "\"BTC\"");
+        assert_eq!(serde_json::to_string(&ton).unwrap(), "\"TON\"");
+    }
+
+    #[test]
+    fn test_fiat_currency_code_serialization() {
+        let usd = FiatCurrencyCode::Usd;
+        let eur = FiatCurrencyCode::Eur;
+
+        assert_eq!(serde_json::to_string(&usd).unwrap(), "\"USD\"");
+        assert_eq!(serde_json::to_string(&eur).unwrap(), "\"EUR\"");
+    }
+
+    #[test]
+    fn test_currency_code_deserialization() {
+        let crypto: CryptoCurrencyCode = serde_json::from_str("\"BTC\"").unwrap();
+        let fiat: FiatCurrencyCode = serde_json::from_str("\"USD\"").unwrap();
+
+        assert_eq!(crypto, CryptoCurrencyCode::Btc);
+        assert_eq!(fiat, FiatCurrencyCode::Usd);
+
+        assert!(serde_json::from_str::<CryptoCurrencyCode>("\"btc\"").is_err());
+        assert!(serde_json::from_str::<FiatCurrencyCode>("\"usd\"").is_err());
+    }
+
+    #[test]
+    fn test_currency_code_conversion() {
+        let crypto = CryptoCurrencyCode::Btc;
+        let fiat = FiatCurrencyCode::Usd;
+
+        let currency_code_crypto: CurrencyCode = crypto.into();
+        let currency_code_fiat: CurrencyCode = fiat.into();
+
+        assert!(matches!(
+            currency_code_crypto,
+            CurrencyCode::Crypto(CryptoCurrencyCode::Btc)
+        ));
+        assert!(matches!(
+            currency_code_fiat,
+            CurrencyCode::Fiat(FiatCurrencyCode::Usd)
+        ));
     }
 }

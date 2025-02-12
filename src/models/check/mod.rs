@@ -39,7 +39,7 @@ pub struct Check {
     pub activated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum CheckStatus {
     Active,

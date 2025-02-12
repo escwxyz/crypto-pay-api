@@ -44,3 +44,34 @@ impl Default for WebhookHandlerConfigBuilder {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn test_webhook_handler_config_builder() {
+        let config = WebhookHandlerConfigBuilder::new()
+            .expiration_time(Duration::from_secs(1000))
+            .build();
+
+        assert_eq!(config.expiration_time, Some(Duration::from_secs(1000)));
+    }
+
+    #[test]
+    fn test_webhook_handler_config_builder_disable_expiration() {
+        let config = WebhookHandlerConfigBuilder::new()
+            .disable_expiration()
+            .build();
+
+        assert_eq!(config.expiration_time, None);
+    }
+
+    #[test]
+    fn test_webhook_handler_config_builder_default() {
+        let config = WebhookHandlerConfigBuilder::default().build();
+
+        assert_eq!(config.expiration_time, Some(Duration::from_secs(600)));
+    }
+}

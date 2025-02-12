@@ -214,8 +214,17 @@ mod tests {
 
     #[test]
     fn test_get_checks_params_builder() {
-        let params = GetChecksParamsBuilder::new().count(5).build().unwrap();
+        let params = GetChecksParamsBuilder::new()
+            .count(5)
+            .asset(CryptoCurrencyCode::Ton)
+            .status(CheckStatus::Activated)
+            .offset(10)
+            .build()
+            .unwrap();
         assert_eq!(params.count, Some(5));
+        assert_eq!(params.asset, Some(CryptoCurrencyCode::Ton));
+        assert_eq!(params.status, Some(CheckStatus::Activated));
+        assert_eq!(params.offset, Some(10));
     }
 
     #[test]
