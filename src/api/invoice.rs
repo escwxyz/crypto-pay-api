@@ -4,8 +4,8 @@ use crate::{
     client::CryptoBot,
     error::{CryptoBotError, CryptoBotResult},
     models::{
-        APIEndpoint, APIMethod, CreateInvoiceParams, DeleteInvoiceParams, GetInvoicesParams,
-        GetInvoicesResponse, Invoice, Method,
+        APIEndpoint, APIMethod, CreateInvoiceParams, DeleteInvoiceParams, GetInvoicesParams, GetInvoicesResponse,
+        Invoice, Method,
     },
 };
 
@@ -60,10 +60,7 @@ impl InvoiceAPI for CryptoBot {
     /// # See Also
     /// * [Invoice](struct.Invoice.html) - The structure representing an invoice
     /// * [CreateInvoiceParams](struct.CreateInvoiceParams.html) - The parameters for creating an invoice
-    async fn create_invoice(
-        &self,
-        params: &CreateInvoiceParams,
-    ) -> Result<Invoice, CryptoBotError> {
+    async fn create_invoice(&self, params: &CreateInvoiceParams) -> Result<Invoice, CryptoBotError> {
         self.make_request(
             &APIMethod {
                 endpoint: APIEndpoint::CreateInvoice,
@@ -150,7 +147,7 @@ impl InvoiceAPI for CryptoBot {
     ///         println!("Invoice #{}: {} {} (paid at: {})",
     ///             invoice.invoice_id,
     ///             invoice.amount,
-    ///             invoice.asset.unwrap(),
+    ///             invoice.asset.unwrap().to_string(),
     ///             invoice.paid_at.unwrap_or_default()
     ///         );
     ///     }
@@ -162,10 +159,7 @@ impl InvoiceAPI for CryptoBot {
     /// # See Also
     /// * [Invoice](struct.Invoice.html) - The structure representing an invoice
     /// * [GetInvoicesParams](struct.GetInvoicesParams.html) - Available filter parameters
-    async fn get_invoices(
-        &self,
-        params: Option<&GetInvoicesParams>,
-    ) -> CryptoBotResult<Vec<Invoice>> {
+    async fn get_invoices(&self, params: Option<&GetInvoicesParams>) -> CryptoBotResult<Vec<Invoice>> {
         let response: GetInvoicesResponse = self
             .make_request(
                 &APIMethod {

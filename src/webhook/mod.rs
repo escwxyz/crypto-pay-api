@@ -30,3 +30,31 @@ impl CryptoBot {
         WebhookHandler::with_config(&self.api_token, config)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn test_webhook_handler_creation() {
+        let client = CryptoBot::test_client();
+
+        // Test with default config
+        let config = WebhookHandlerConfigBuilder::new().build();
+        let handler = client.webhook_handler(config);
+
+        assert_eq!(handler.api_token, client.api_token);
+        assert_eq!(handler.config.expiration_time, Some(Duration::from_secs(600)));
+
+        // Test with custom config
+        let custom_config = WebhookHandlerConfigBuilder::new()
+            .expiration_time(Duration::from_secs(300))
+            .build();
+
+        let handler = client.webhook_handler(custom_config);
+
+        assert_eq!(handler.api_token, client.api_token);
+        assert_eq!(handler.config.expiration_time, Some(Duration::from_secs(300)));
+    }
+}

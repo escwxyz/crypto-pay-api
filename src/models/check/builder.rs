@@ -8,9 +8,7 @@ use crate::{
     client::CryptoBot,
     error::{CryptoBotError, CryptoBotResult, ValidationErrorKind},
     models::{CryptoCurrencyCode, Missing, Set},
-    validation::{
-        validate_amount, validate_count, ContextValidate, FieldValidate, ValidationContext,
-    },
+    validation::{validate_amount, validate_count, ContextValidate, FieldValidate, ValidationContext},
 };
 
 use super::{CheckStatus, CreateCheckParams, GetChecksParams};

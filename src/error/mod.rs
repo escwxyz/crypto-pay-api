@@ -26,16 +26,13 @@ pub enum CryptoBotError {
     },
 
     #[error("Webhook error: {kind} - {message}")]
-    WebhookError {
-        kind: WebhookErrorKind,
-        message: String,
-    },
+    WebhookError { kind: WebhookErrorKind, message: String },
 
     #[error("No result returned from API")]
     NoResult,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ValidationErrorKind {
     Format,
     Range,
@@ -90,10 +87,7 @@ mod tests {
         let test_cases = vec![
             (WebhookErrorKind::InvalidSignature, "InvalidSignature"),
             (WebhookErrorKind::InvalidPayload, "InvalidPayload"),
-            (
-                WebhookErrorKind::DeserializationError,
-                "DeserializationError",
-            ),
+            (WebhookErrorKind::DeserializationError, "DeserializationError"),
             (WebhookErrorKind::Expired, "Expired"),
         ];
 
@@ -110,10 +104,7 @@ mod tests {
             field: Some("amount".to_string()),
         };
 
-        assert_eq!(
-            error.to_string(),
-            "Validation error: Range - Value out of range"
-        );
+        assert_eq!(error.to_string(), "Validation error: Range - Value out of range");
     }
 
     #[test]
@@ -123,9 +114,6 @@ mod tests {
             message: "Invalid signature".to_string(),
         };
 
-        assert_eq!(
-            error.to_string(),
-            "Webhook error: InvalidSignature - Invalid signature"
-        );
+        assert_eq!(error.to_string(), "Webhook error: InvalidSignature - Invalid signature");
     }
 }

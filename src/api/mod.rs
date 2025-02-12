@@ -10,9 +10,8 @@ use async_trait::async_trait;
 use crate::{
     error::CryptoBotResult,
     models::{
-        AppStats, Balance, Check, CreateCheckParams, CreateInvoiceParams, Currency, ExchangeRate,
-        GetChecksParams, GetInvoicesParams, GetMeResponse, GetStatsParams, GetTransfersParams,
-        Invoice, Transfer, TransferParams,
+        AppStats, Balance, Check, CreateCheckParams, CreateInvoiceParams, Currency, ExchangeRate, GetChecksParams,
+        GetInvoicesParams, GetMeResponse, GetStatsParams, GetTransfersParams, Invoice, Transfer, TransferParams,
     },
 };
 
@@ -42,18 +41,12 @@ pub trait ExchangeRateAPI {
 #[async_trait]
 pub trait TransferAPI {
     async fn transfer(&self, params: &TransferParams) -> CryptoBotResult<Transfer>;
-    async fn get_transfers(
-        &self,
-        params: Option<&GetTransfersParams>,
-    ) -> CryptoBotResult<Vec<Transfer>>;
+    async fn get_transfers(&self, params: Option<&GetTransfersParams>) -> CryptoBotResult<Vec<Transfer>>;
 }
 
 #[async_trait]
 pub trait InvoiceAPI {
     async fn create_invoice(&self, params: &CreateInvoiceParams) -> CryptoBotResult<Invoice>;
     async fn delete_invoice(&self, invoice_id: u64) -> CryptoBotResult<bool>;
-    async fn get_invoices(
-        &self,
-        params: Option<&GetInvoicesParams>,
-    ) -> CryptoBotResult<Vec<Invoice>>;
+    async fn get_invoices(&self, params: Option<&GetInvoicesParams>) -> CryptoBotResult<Vec<Invoice>>;
 }

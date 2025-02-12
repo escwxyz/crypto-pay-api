@@ -7,9 +7,7 @@ use crate::{
     client::CryptoBot,
     error::{CryptoBotError, CryptoBotResult, ValidationErrorKind},
     models::{CryptoCurrencyCode, Missing, Set},
-    validation::{
-        validate_amount, validate_count, ContextValidate, FieldValidate, ValidationContext,
-    },
+    validation::{validate_amount, validate_count, ContextValidate, FieldValidate, ValidationContext},
 };
 
 use super::params::{GetTransfersParams, TransferParams};
@@ -231,9 +229,7 @@ impl TransferParamsBuilder<Set, Set, Set, Set> {
 
         let rates = client.get_exchange_rates().await?;
 
-        let ctx = ValidationContext {
-            exchange_rates: rates,
-        };
+        let ctx = ValidationContext { exchange_rates: rates };
 
         self.validate_with_context(&ctx).await?;
 

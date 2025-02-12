@@ -1,10 +1,7 @@
 use crate::{
     client::CryptoBot,
     error::CryptoBotResult,
-    models::{
-        APIEndpoint, APIMethod, GetTransfersParams, GetTransfersResponse, Method, Transfer,
-        TransferParams,
-    },
+    models::{APIEndpoint, APIMethod, GetTransfersParams, GetTransfersResponse, Method, Transfer, TransferParams},
 };
 
 use super::TransferAPI;
@@ -102,10 +99,7 @@ impl TransferAPI for CryptoBot {
     ///
     /// # See also
     /// * [GetTransfersParamsBuilder](crate::models::GetTransfersParamsBuilder)
-    async fn get_transfers(
-        &self,
-        params: Option<&GetTransfersParams>,
-    ) -> CryptoBotResult<Vec<Transfer>> {
+    async fn get_transfers(&self, params: Option<&GetTransfersParams>) -> CryptoBotResult<Vec<Transfer>> {
         let response: GetTransfersResponse = self
             .make_request(
                 &APIMethod {
@@ -129,9 +123,7 @@ mod tests {
     use crate::{
         api::TransferAPI,
         client::CryptoBot,
-        models::{
-            CryptoCurrencyCode, GetTransfersParamsBuilder, TransferParamsBuilder, TransferStatus,
-        },
+        models::{CryptoCurrencyCode, GetTransfersParamsBuilder, TransferParamsBuilder, TransferStatus},
         utils::test_utils::TestContext,
     };
 
@@ -296,10 +288,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let params = GetTransfersParamsBuilder::new()
-            .transfer_ids(vec![1])
-            .build()
-            .unwrap();
+        let params = GetTransfersParamsBuilder::new().transfer_ids(vec![1]).build().unwrap();
 
         let result = ctx.run(async { client.get_transfers(Some(&params)).await });
 

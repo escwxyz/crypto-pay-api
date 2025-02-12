@@ -4,8 +4,7 @@ use crate::{
     client::CryptoBot,
     error::CryptoBotError,
     models::{
-        APIEndpoint, APIMethod, Check, CreateCheckParams, DeleteCheckParams, GetChecksParams,
-        GetChecksResponse, Method,
+        APIEndpoint, APIMethod, Check, CreateCheckParams, DeleteCheckParams, GetChecksParams, GetChecksResponse, Method,
     },
 };
 
@@ -139,10 +138,9 @@ impl CheckAPI for CryptoBot {
     ///     let filtered_checks = client.get_checks(Some(&params)).await?;
     ///     
     ///     for check in filtered_checks {
-    ///         println!("Check ID: {}, Amount: {} {}",
+    ///         println!("Check ID: {}, Amount: {}",
     ///             check.check_id,
     ///             check.amount,
-    ///             check.asset
     ///         );
     ///     }
     ///     
@@ -154,10 +152,7 @@ impl CheckAPI for CryptoBot {
     /// * [Check](struct.Check.html) - The structure representing a check
     /// * [GetChecksParams](struct.GetChecksParams.html) - Available filter parameters
     /// * [CryptoBot API Documentation](https://help.crypt.bot/crypto-pay-api#getChecks)
-    async fn get_checks(
-        &self,
-        params: Option<&GetChecksParams>,
-    ) -> Result<Vec<Check>, CryptoBotError> {
+    async fn get_checks(&self, params: Option<&GetChecksParams>) -> Result<Vec<Check>, CryptoBotError> {
         let response: GetChecksResponse = self
             .make_request(
                 &APIMethod {
@@ -339,10 +334,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let params = GetChecksParamsBuilder::new()
-            .check_ids(vec![123])
-            .build()
-            .unwrap();
+        let params = GetChecksParamsBuilder::new().check_ids(vec![123]).build().unwrap();
 
         let result = ctx.run(async { client.get_checks(Some(&params)).await });
 

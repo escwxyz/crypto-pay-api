@@ -43,10 +43,7 @@ async fn webhook_middleware(
 
 #[tokio::main]
 async fn main() {
-    let client = CryptoBot::builder()
-        .api_token("your_token")
-        .build()
-        .unwrap();
+    let client = CryptoBot::builder().api_token("your_token").build().unwrap();
 
     let mut webhook_handler = client.webhook_handler(WebhookHandlerConfigBuilder::new().build());
 
@@ -63,9 +60,7 @@ async fn main() {
         .with_state(handler.clone())
         .layer(middleware::from_fn_with_state(handler, webhook_middleware));
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await.unwrap();
     println!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }

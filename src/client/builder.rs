@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn test_builder_default_config() {
-        let builder = ClientBuilder::new();
+        let builder = ClientBuilder::default();
         let client = builder.api_token("test").build().unwrap();
         assert_eq!(client.base_url, DEFAULT_API_URL);
     }

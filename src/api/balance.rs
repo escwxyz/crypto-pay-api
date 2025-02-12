@@ -36,7 +36,6 @@ impl BalanceAPI for CryptoBot {
     ///     let balances = client.get_balance().await?;
     ///     
     ///     for balance in balances {
-    ///         println!("Currency: {}", balance.currency_code);
     ///         println!("Available: {}", balance.available);
     ///     }
     ///     

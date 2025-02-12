@@ -7,9 +7,7 @@ use crate::{
     client::CryptoBot,
     error::{CryptoBotError, CryptoBotResult, ValidationErrorKind},
     models::{CryptoCurrencyCode, CurrencyType, FiatCurrencyCode, Missing, PayButtonName, Set},
-    validation::{
-        validate_amount, validate_count, ContextValidate, FieldValidate, ValidationContext,
-    },
+    validation::{validate_amount, validate_count, ContextValidate, FieldValidate, ValidationContext},
 };
 
 use super::{CreateInvoiceParams, GetInvoicesParams, InvoiceStatus};
@@ -182,10 +180,7 @@ impl<A, C, U> CreateInvoiceParamsBuilder<A, C, Missing, U> {
     /// openChannel – "View Channel",
     /// openBot – "Open Bot",
     /// callback – "Return to the bot"  
-    pub fn paid_btn_name(
-        mut self,
-        paid_btn_name: PayButtonName,
-    ) -> CreateInvoiceParamsBuilder<A, C, Set, U> {
+    pub fn paid_btn_name(mut self, paid_btn_name: PayButtonName) -> CreateInvoiceParamsBuilder<A, C, Set, U> {
         self.paid_btn_name = Some(paid_btn_name);
         self.transform()
     }
@@ -196,10 +191,7 @@ impl<A, C> CreateInvoiceParamsBuilder<A, C, Set, Missing> {
     /// Optional. Required if paid_btn_name is specified. URL opened using the button which will be presented to a user after the invoice is paid.
     /// You can set any callback link (for example, a success link or link to homepage).
     /// Starts with https or http.
-    pub fn paid_btn_url(
-        mut self,
-        paid_btn_url: impl Into<String>,
-    ) -> CreateInvoiceParamsBuilder<A, C, Set, Set> {
+    pub fn paid_btn_url(mut self, paid_btn_url: impl Into<String>) -> CreateInvoiceParamsBuilder<A, C, Set, Set> {
         self.paid_btn_url = Some(paid_btn_url.into());
         self.transform()
     }
@@ -297,7 +289,7 @@ impl<A, C, P, U> FieldValidate for CreateInvoiceParamsBuilder<A, C, P, U> {
             if desc.chars().count() > 1024 {
                 return Err(CryptoBotError::ValidationError {
                     kind: ValidationErrorKind::Range,
-                    message: "description_too_long".to_string(),
+                    message: "description too long".to_string(),
                     field: Some("description".to_string()),
                 });
             }
@@ -380,9 +372,7 @@ impl CreateInvoiceParamsBuilder<Set, Set, Set, Set> {
         }
 
         let rates = client.get_exchange_rates().await?;
-        let ctx = ValidationContext {
-            exchange_rates: rates,
-        };
+        let ctx = ValidationContext { exchange_rates: rates };
         self.validate_with_context(&ctx).await?;
 
         Ok(CreateInvoiceParams {
@@ -532,6 +522,21 @@ mod tests {
         ));
 
         let result = CreateInvoiceParamsBuilder::new()
+            .amount(dec!(0))
+            .asset(CryptoCurrencyCode::Ton)
+            .build(&client)
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                kind: ValidationErrorKind::Range,
+                field: Some(field),
+                ..
+            }) if field == "amount"
+        ));
+
+        let result = CreateInvoiceParamsBuilder::new()
             .amount(dec!(10000))
             .asset(CryptoCurrencyCode::Ton)
             .build(&client)
@@ -549,24 +554,40 @@ mod tests {
         ));
     }
 
-    #[tokio::test]
-    async fn test_create_invoice_params_builder_invalid_description() {
-        let client = CryptoBot::test_client();
-        let result = CreateInvoiceParamsBuilder::new()
-            .amount(Decimal::from(100))
-            .fiat(FiatCurrencyCode::Usd)
-            .description("a".repeat(1025))
-            .build(&client)
-            .await;
+    #[test]
+    fn test_description_chars_count() {
+        let builder = CreateInvoiceParamsBuilder::new()
+            .amount(dec!(100))
+            .fiat(FiatCurrencyCode::Usd);
 
-        assert!(matches!(
-            result,
-            Err(CryptoBotError::ValidationError {
-                kind: ValidationErrorKind::Range,
-                field: Some(field),
-                ..
-            }) if field == "description"
-        ));
+        let desc = "a".repeat(1024);
+        assert_eq!(desc.chars().count(), 1024);
+        let valid_builder = builder.description(desc);
+        assert!(valid_builder.validate().is_ok());
+
+        let builder = CreateInvoiceParamsBuilder::new()
+            .amount(dec!(100))
+            .fiat(FiatCurrencyCode::Usd);
+        let multibyte_desc = "🦀".repeat(1024);
+        assert_eq!(multibyte_desc.chars().count(), 1024);
+        let valid_multibyte = builder.description(multibyte_desc);
+        assert!(valid_multibyte.validate().is_ok());
+
+        let builder = CreateInvoiceParamsBuilder::new()
+            .amount(dec!(100))
+            .fiat(FiatCurrencyCode::Usd);
+        let long_desc = "a".repeat(1025);
+        assert_eq!(long_desc.chars().count(), 1025);
+        let invalid_builder = builder.description(long_desc);
+
+        match invalid_builder.validate() {
+            Err(CryptoBotError::ValidationError { kind, message, field }) => {
+                assert_eq!(kind, ValidationErrorKind::Range);
+                assert_eq!(message, "description too long");
+                assert_eq!(field, Some("description".to_string()));
+            }
+            _ => panic!("Expected ValidationError"),
+        }
     }
 
     #[tokio::test]

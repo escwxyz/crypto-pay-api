@@ -4,19 +4,12 @@ use serde::{de, Deserialize, Deserializer};
 use crate::models::{CryptoCurrencyCode, CurrencyCode, FiatCurrencyCode};
 
 /// Serialize a comma-separated list of u64 to a String
-pub fn serialize_comma_separated_list<S>(
-    ids: &Option<Vec<u64>>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+pub fn serialize_comma_separated_list<S>(ids: &Option<Vec<u64>>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
     if let Some(ids) = ids {
-        let str_value = ids
-            .iter()
-            .map(|id| id.to_string())
-            .collect::<Vec<_>>()
-            .join(",");
+        let str_value = ids.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(",");
         serializer.serialize_str(&str_value)
     } else {
         unreachable!("should be skipped by skip_serializing_if")
@@ -51,9 +44,7 @@ where
 }
 
 /// Deserialize an optional String to a Decimal
-pub fn deserialize_optional_decimal_from_string<'de, D>(
-    deserializer: D,
-) -> Result<Option<Decimal>, D::Error>
+pub fn deserialize_optional_decimal_from_string<'de, D>(deserializer: D) -> Result<Option<Decimal>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -79,10 +70,7 @@ where
         return Ok(CurrencyCode::Fiat(fiat));
     }
 
-    Err(serde::de::Error::custom(format!(
-        "Invalid currency code: {}",
-        code
-    )))
+    Err(serde::de::Error::custom(format!("Invalid currency code: {}", code)))
 }
 
 #[cfg(test)]
@@ -257,23 +245,15 @@ mod tests {
     #[test]
     fn test_deserialize_currency_code() {
         // Test valid crypto currency
-        let result =
-            deserialize_currency_code(&mut serde_json::de::Deserializer::from_str("\"BTC\""))
-                .unwrap();
-        assert!(matches!(
-            result,
-            CurrencyCode::Crypto(CryptoCurrencyCode::Btc)
-        ));
+        let result = deserialize_currency_code(&mut serde_json::de::Deserializer::from_str("\"BTC\"")).unwrap();
+        assert!(matches!(result, CurrencyCode::Crypto(CryptoCurrencyCode::Btc)));
 
         // Test valid fiat currency
-        let result =
-            deserialize_currency_code(&mut serde_json::de::Deserializer::from_str("\"USD\""))
-                .unwrap();
+        let result = deserialize_currency_code(&mut serde_json::de::Deserializer::from_str("\"USD\"")).unwrap();
         assert!(matches!(result, CurrencyCode::Fiat(FiatCurrencyCode::Usd)));
 
         // Test invalid currency
-        let result =
-            deserialize_currency_code(&mut serde_json::de::Deserializer::from_str("\"XXX\""));
+        let result = deserialize_currency_code(&mut serde_json::de::Deserializer::from_str("\"XXX\""));
         assert!(result.is_err());
     }
 }

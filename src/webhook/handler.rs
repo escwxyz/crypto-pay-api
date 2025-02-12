@@ -11,16 +11,13 @@ use crate::{
 
 use super::WebhookHandlerConfig;
 
-pub type WebhookHandlerFn = Box<
-    dyn Fn(WebhookUpdate) -> Pin<Box<dyn Future<Output = Result<(), CryptoBotError>> + Send>>
-        + Send
-        + Sync,
->;
+pub type WebhookHandlerFn =
+    Box<dyn Fn(WebhookUpdate) -> Pin<Box<dyn Future<Output = Result<(), CryptoBotError>> + Send>> + Send + Sync>;
 
 pub struct WebhookHandler {
-    api_token: String,
-    config: WebhookHandlerConfig,
-    update_handler: Option<WebhookHandlerFn>,
+    pub(crate) api_token: String,
+    pub(crate) config: WebhookHandlerConfig,
+    pub(crate) update_handler: Option<WebhookHandlerFn>,
 }
 
 impl WebhookHandler {
@@ -74,8 +71,7 @@ impl WebhookHandler {
     /// ```
     pub fn verify_signature(&self, body: &str, signature: &str) -> bool {
         let secret = Sha256::digest(self.api_token.as_bytes());
-        let mut mac =
-            Hmac::<Sha256>::new_from_slice(&secret).expect("HMAC can take key of any size");
+        let mut mac = Hmac::<Sha256>::new_from_slice(&secret).expect("HMAC can take key of any size");
 
         mac.update(body.as_bytes());
 
@@ -110,11 +106,9 @@ impl WebhookHandler {
         if let Some(expiration_time) = self.config.expiration_time {
             // Verify request date
             let request_date =
-                DateTime::parse_from_rfc3339(&update.request_date).map_err(|_| {
-                    CryptoBotError::WebhookError {
-                        kind: WebhookErrorKind::InvalidPayload,
-                        message: "Invalid request date".to_string(),
-                    }
+                DateTime::parse_from_rfc3339(&update.request_date).map_err(|_| CryptoBotError::WebhookError {
+                    kind: WebhookErrorKind::InvalidPayload,
+                    message: "Invalid request date".to_string(),
                 })?;
 
             let age = Utc::now().signed_duration_since(request_date.with_timezone(&Utc));
@@ -205,8 +199,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_webhook_handler() {
-        let mut handler =
-            WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
+        let mut handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
 
         let received = Arc::new(Mutex::new(None));
         let received_clone = received.clone();
@@ -240,16 +233,13 @@ mod tests {
                 "allow_comments": true,
                 "allow_anonymous": true
             }
-        }).to_string();
+        })
+        .to_string();
 
         let result = handler.handle_update(&json).await;
         assert!(result.is_ok());
 
-        let update = received
-            .lock()
-            .await
-            .take()
-            .expect("Should have received update");
+        let update = received.lock().await.take().expect("Should have received update");
         assert_eq!(update.update_type, UpdateType::InvoicePaid);
         match update.payload {
             WebhookPayload::InvoicePaid(invoice) => {
@@ -261,8 +251,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_webhook_handler_invalid_request_date() {
-        let handler =
-            WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
+        let handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
 
         let json = json!({
             "update_id": 1,
@@ -284,9 +273,7 @@ mod tests {
     async fn test_webhook_handler_with_disabled_expiration() {
         let handler = WebhookHandler::with_config(
             "test_token",
-            WebhookHandlerConfigBuilder::new()
-                .disable_expiration()
-                .build(),
+            WebhookHandlerConfigBuilder::new().disable_expiration().build(),
         );
 
         let json = json!({
@@ -317,8 +304,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_default_webhook_expiration() {
-        let handler =
-            WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
+        let handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
 
         let date = (Utc::now() - chrono::Duration::minutes(3)).to_rfc3339();
 
@@ -342,7 +328,8 @@ mod tests {
                     "allow_comments": true,
                     "allow_anonymous": true
             }
-        }).to_string();
+        })
+        .to_string();
 
         let result = handler.handle_update(&json).await;
         assert!(result.is_ok());

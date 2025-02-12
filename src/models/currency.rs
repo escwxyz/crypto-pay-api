@@ -23,6 +23,7 @@ pub enum CurrencyCode {
     Fiat(FiatCurrencyCode),
 }
 
+#[cfg(not(tarpaulin))]
 impl Display for CurrencyCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -48,6 +49,7 @@ pub enum CryptoCurrencyCode {
     Jet,
 }
 
+#[cfg(not(tarpaulin))]
 impl Display for CryptoCurrencyCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
@@ -81,6 +83,7 @@ pub enum FiatCurrencyCode {
     Ils,
 }
 
+#[cfg(not(tarpaulin))]
 impl Display for FiatCurrencyCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
@@ -94,6 +97,7 @@ pub enum CurrencyType {
     Fiat,
 }
 
+#[cfg(not(tarpaulin))]
 impl Display for CurrencyType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
@@ -167,9 +171,6 @@ mod tests {
             currency_code_crypto,
             CurrencyCode::Crypto(CryptoCurrencyCode::Btc)
         ));
-        assert!(matches!(
-            currency_code_fiat,
-            CurrencyCode::Fiat(FiatCurrencyCode::Usd)
-        ));
+        assert!(matches!(currency_code_fiat, CurrencyCode::Fiat(FiatCurrencyCode::Usd)));
     }
 }

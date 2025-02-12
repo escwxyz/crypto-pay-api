@@ -68,7 +68,7 @@ impl MiscAPI for CryptoBot {
     ///     let currencies = client.get_currencies().await?;
     ///     
     ///     for currency in currencies {
-    ///         println!("Currency: {} ({})", currency.name, currency.code);
+    ///         println!("Currency: {}", currency.name);
     ///         println!("Type: {}", if currency.is_blockchain { "Crypto" }
     ///             else if currency.is_fiat { "Fiat" }
     ///             else { "Stablecoin" });
@@ -544,14 +544,8 @@ mod tests {
         let currencies = result.unwrap();
 
         assert_eq!(currencies.len(), 33);
-        assert_eq!(
-            currencies[0].code,
-            CurrencyCode::Crypto(CryptoCurrencyCode::Usdt)
-        );
-        assert_eq!(
-            currencies[1].code,
-            CurrencyCode::Crypto(CryptoCurrencyCode::Ton)
-        );
+        assert_eq!(currencies[0].code, CurrencyCode::Crypto(CryptoCurrencyCode::Usdt));
+        assert_eq!(currencies[1].code, CurrencyCode::Crypto(CryptoCurrencyCode::Ton));
     }
 
     #[test]

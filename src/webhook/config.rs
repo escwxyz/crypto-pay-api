@@ -61,9 +61,7 @@ mod tests {
 
     #[test]
     fn test_webhook_handler_config_builder_disable_expiration() {
-        let config = WebhookHandlerConfigBuilder::new()
-            .disable_expiration()
-            .build();
+        let config = WebhookHandlerConfigBuilder::new().disable_expiration().build();
 
         assert_eq!(config.expiration_time, None);
     }
