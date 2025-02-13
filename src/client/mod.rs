@@ -32,7 +32,7 @@ impl CryptoBot {
     /// Returns a new builder for creating a customized CryptoBot client
     ///
     /// The builder pattern allows you to customize all aspects of the client,
-    /// including timeout, base URL, headers, and webhook settings.
+    /// including timeout, base URL and headers settings.
     ///
     /// # Available Settings
     /// * `api_token` - Required, the API token from [@CryptoBot](https://t.me/CryptoBot)
@@ -102,7 +102,7 @@ impl CryptoBot {
         };
 
         if let Some(params) = params {
-            request = request.json(params); // TODO: test this
+            request = request.json(params);
         }
 
         let response = request.send().await?;
@@ -120,7 +120,6 @@ impl CryptoBot {
         })?;
 
         if !api_response.ok {
-            // TODO: test this
             return Err(CryptoBotError::ApiError {
                 code: api_response.error_code.unwrap_or(0),
                 message: api_response.error.unwrap_or_default(),
@@ -165,21 +164,6 @@ mod tests {
                 .with_body("invalid json{")
                 .create()
         }
-
-        // pub fn mock_api_error_response(&mut self) -> Mock {
-        //     self.server
-        //         .mock("GET", "/getBalance")
-        //         .with_header("content-type", "application/json")
-        //         .with_body(
-        //             json!({
-        //                 "ok": false,
-        //                 "error": "Test error message",
-        //                 "error_code": 123
-        //             })
-        //             .to_string(),
-        //         )
-        //         .create()
-        // }
     }
 
     #[test]
@@ -200,8 +184,76 @@ mod tests {
             Err(CryptoBotError::ApiError {
                 code: -1,
                 message,
-                details: Some(_)
+                details: Some(details)
             }) if message == "Failed to parse API response"
+            && details.get("error").is_some()
+        ));
+    }
+
+    #[test]
+    fn test_invalid_response_structure() {
+        let mut ctx = TestContext::new();
+
+        let _m = ctx
+            .server
+            .mock("GET", "/getBalance")
+            .with_header("content-type", "application/json")
+            .with_body(
+                json!({
+                    "ok": true,
+                    "result": "not_an_array"
+                })
+                .to_string(),
+            )
+            .create();
+
+        let client = CryptoBot::builder()
+            .api_token("test")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async { client.get_balance().await });
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ApiError {
+                code: -1,
+                message,
+                details: Some(details)
+            }) if message == "Failed to parse API response"
+                && details.get("error").is_some()
+        ));
+    }
+
+    #[test]
+    fn test_empty_response() {
+        let mut ctx = TestContext::new();
+
+        // Mock empty response
+        let _m = ctx
+            .server
+            .mock("GET", "/getBalance")
+            .with_header("content-type", "application/json")
+            .with_body("")
+            .create();
+
+        let client = CryptoBot::builder()
+            .api_token("test")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async { client.get_balance().await });
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ApiError {
+                code: -1,
+                message,
+                details: Some(details)
+            }) if message == "Failed to parse API response"
+                && details.get("error").is_some()
         ));
     }
 

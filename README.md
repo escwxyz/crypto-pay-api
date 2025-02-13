@@ -11,7 +11,7 @@ A type-safe Rust client for the [Crypto Bot](https://t.me/CryptoBot) API with as
 ## Features ✨
 
 - 🔒 Complete type safety
-- 🚀 Async support (powered by tokio)
+- 🚀 Async support
 - 💡 Comprehensive error handling
 - 🛠 Built-in parameter validation
 - 📦 Zero configuration
