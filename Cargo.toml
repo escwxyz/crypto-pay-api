@@ -22,7 +22,7 @@ rust_decimal_macros = "1.36.0"
 serde = { version = "1.0.218", features = ["derive"] }
 serde_json = "1.0.139"
 sha2 = { version = "0.10.8" }
-thiserror = "2.0.11"
+thiserror = "2.0.12"
 
 [dev-dependencies]
 mockito = "1.6.1"
