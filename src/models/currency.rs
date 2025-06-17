@@ -47,6 +47,8 @@ pub enum CryptoCurrencyCode {
     Doge,
     Send,
     Jet,
+    #[serde(other)]
+    Unknown,
 }
 
 #[cfg(not(tarpaulin))]
@@ -81,6 +83,8 @@ pub enum FiatCurrencyCode {
     Aed,
     Pln,
     Ils,
+    #[serde(other)]
+    Unknown,
 }
 
 #[cfg(not(tarpaulin))]
@@ -155,8 +159,14 @@ mod tests {
         assert_eq!(crypto, CryptoCurrencyCode::Btc);
         assert_eq!(fiat, FiatCurrencyCode::Usd);
 
-        assert!(serde_json::from_str::<CryptoCurrencyCode>("\"btc\"").is_err());
-        assert!(serde_json::from_str::<FiatCurrencyCode>("\"usd\"").is_err());
+        assert_eq!(
+            serde_json::from_str::<CryptoCurrencyCode>("\"btc\"").unwrap(),
+            CryptoCurrencyCode::Unknown
+        );
+        assert_eq!(
+            serde_json::from_str::<FiatCurrencyCode>("\"usd\"").unwrap(),
+            FiatCurrencyCode::Unknown
+        );
     }
 
     #[test]
