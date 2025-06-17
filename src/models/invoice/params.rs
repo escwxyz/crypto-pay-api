@@ -2,7 +2,7 @@ use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::{
-    models::{CryptoCurrencyCode, CurrencyType, FiatCurrencyCode, PayButtonName},
+    models::{CryptoCurrencyCode, CurrencyType, FiatCurrencyCode, PayButtonName, SwapToAssets},
     utils::{serialize_comma_separated_list, serialize_decimal_to_string},
 };
 
@@ -98,6 +98,11 @@ pub struct CreateInvoiceParams {
     /// Starts with https or http.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) paid_btn_url: Option<String>,
+
+    /// Optional.
+    /// The asset that will be attempted to be swapped into after the user makes a payment (the swap is not guaranteed). Supported assets: "USDT", "TON", "TRX", "ETH", "SOL", "BTC", "LTC".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) swap_to: Option<SwapToAssets>,
 
     /// Optional. Any data you want to attach to the invoice (for example, user ID, payment ID, ect).
     /// Up to 4kb.

@@ -13,7 +13,7 @@ use crate::utils::{deserialize_decimal_from_string, deserialize_optional_decimal
 #[derive(Debug, Deserialize, Clone)]
 pub struct Invoice {
     /// Unique ID for this invoice.
-    pub invoice_id: i64,
+    pub invoice_id: u64,
 
     /// Hash of the invoice.
     pub hash: String,
@@ -70,6 +70,30 @@ pub struct Invoice {
     /// Status of the transfer, can be "active", "paid" or "expired".
     pub status: InvoiceStatus,
 
+    /// Optional. The asset that will be attempted to be swapped into after the user makes a payment (the swap is not guaranteed). Supported assets: "USDT", "TON", "TRX", "ETH", "SOL", "BTC", "LTC".
+    pub swap_to: Option<SwapToAssets>,
+
+    /// Optional. For invoices with the "paid" status, this flag indicates whether the swap was successful (only applicable if swap_to is set).
+    pub is_swapped: Option<String>,
+
+    /// Optional. If is_swapped is true, stores the unique identifier of the swap.
+    pub swapped_uid: Option<String>,
+
+    /// Optional. If is_swapped is true, stores the asset into which the swap was made.
+    pub swapped_to: Option<SwapToAssets>,
+
+    /// Optional. If is_swapped is true, stores the exchange rate at which the swap was executed.
+    pub swapped_rate: Option<Decimal>,
+
+    /// Optional. If is_swapped is true, stores the amount received as a result of the swap (in the swapped_to asset).
+    pub swapped_output: Option<Decimal>,
+
+    /// Optional. If is_swapped is true, stores the resulting swap amount in USD.
+    pub swapped_usd_amount: Option<Decimal>,
+
+    /// Optional. If is_swapped is true, stores the USD exchange rate of the currency from swapped_to.
+    pub swapped_usd_rate: Option<Decimal>,
+
     /// Date the invoice was created in ISO 8601 format.
     pub created_at: DateTime<Utc>,
 
@@ -109,23 +133,22 @@ pub struct Invoice {
     pub paid_btn_url: Option<String>,
 }
 
-// Customized methods to put here in the struct
-// impl Invoice {
-//     pub fn is_paid(&self) -> bool {
-//         self.status == InvoiceStatus::Paid
-//     }
-
-//     pub fn is_expired(&self) -> bool {
-//         self.status == InvoiceStatus::Expired
-//     }
-
-//     // TODO
-// }
-
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum InvoiceStatus {
     Active,
     Paid,
     Expired,
+}
+
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum SwapToAssets {
+    Usdt,
+    Ton,
+    Trx,
+    Eth,
+    Sol,
+    Btc,
+    Ltc,
 }

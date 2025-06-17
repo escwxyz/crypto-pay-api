@@ -181,7 +181,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::models::{CreateInvoiceParamsBuilder, CryptoCurrencyCode, GetInvoicesParamsBuilder};
+    use crate::models::{CreateInvoiceParamsBuilder, CryptoCurrencyCode, GetInvoicesParamsBuilder, SwapToAssets};
     use crate::utils::test_utils::TestContext;
 
     impl TestContext {
@@ -392,5 +392,58 @@ mod tests {
 
         assert!(result.is_ok());
         assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_swap_to_assets_serialization() {
+        // This test checks that the enum serializes to the correct string
+        let asset = SwapToAssets::Usdt;
+        let serialized = serde_json::to_string(&asset).unwrap();
+        assert_eq!(serialized, "\"USDT\"");
+
+        let deserialized: SwapToAssets = serde_json::from_str("\"BTC\"").unwrap();
+        assert_eq!(deserialized, SwapToAssets::Btc);
+    }
+
+    #[test]
+    fn test_invoice_swap_fields_serialization() {
+        // This test checks that all swap-related fields serialize and deserialize correctly
+
+        let json = r#"
+        {
+            "invoice_id": 678657,
+            "hash": "IVq7Vg91PPXn",
+            "currency_type": "crypto",
+            "asset": "TON",
+            "amount": "125.5",
+            "pay_url": "https://t.me/CryptoTestnetBot?start=IVq7Vg91PPXn",
+            "bot_invoice_url": "https://t.me/CryptoTestnetBot?start=IVq7Vg91PPXn",
+            "mini_app_invoice_url": "https://t.me/CryptoTestnetBot/app?startapp=invoice-IVq7Vg91PPXn&mode=compact",
+            "web_app_invoice_url": "https://testnet-app.send.tg/invoices/IVq7Vg91PPXn",
+            "status": "active",
+            "created_at": "2025-06-17T04:23:31.810Z",
+            "allow_comments": true,
+            "allow_anonymous": true,
+            "swap_to": "TON",
+            "is_swapped": "true",
+            "swapped_uid": "unique_swap_id",
+            "swapped_to": "ETH",
+            "swapped_rate": "123.45",
+            "swapped_output": "1000",
+            "swapped_usd_amount": "1500.00",
+            "swapped_usd_rate": "1.50"
+        }
+        "#;
+        let invoice: Invoice = serde_json::from_str(json).expect("Deserialization failed");
+
+        // Now check that the fields were parsed correctly
+        assert_eq!(invoice.swap_to, Some(SwapToAssets::Ton));
+        assert_eq!(invoice.is_swapped, Some("true".to_string()));
+        assert_eq!(invoice.swapped_uid, Some("unique_swap_id".to_string()));
+        assert_eq!(invoice.swapped_to, Some(SwapToAssets::Eth));
+        assert_eq!(invoice.swapped_rate, Some(dec!(123.45))); // 123.45
+        assert_eq!(invoice.swapped_output, Some(dec!(1000))); // 1000
+        assert_eq!(invoice.swapped_usd_amount, Some(dec!(1500.00))); // 1500.00
+        assert_eq!(invoice.swapped_usd_rate, Some(dec!(1.50))); // 1.50
     }
 }
