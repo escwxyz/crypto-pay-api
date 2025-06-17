@@ -25,7 +25,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-crypto-pay-api = "0.1.0"
+crypto-pay-api = "0.1.1"
 ```
 
 ### Basic Example with tokio
@@ -137,6 +137,10 @@ match client.get_balance().await {
 
 - [API Documentation](https://docs.rs/crypto-pay-api)
 - [Crypto Bot API Documentation](https://help.crypt.bot/crypto-pay-api)
+
+## TODOs 🧪
+
+- Add more integration tests
 
 ## Contributing 🤝
 
