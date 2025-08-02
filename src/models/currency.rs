@@ -27,8 +27,8 @@ pub enum CurrencyCode {
 impl Display for CurrencyCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CurrencyCode::Crypto(code) => write!(f, "{}", code),
-            CurrencyCode::Fiat(code) => write!(f, "{}", code),
+            CurrencyCode::Crypto(code) => write!(f, "{code}"),
+            CurrencyCode::Fiat(code) => write!(f, "{code}"),
         }
     }
 }
@@ -54,7 +54,7 @@ pub enum CryptoCurrencyCode {
 #[cfg(not(tarpaulin))]
 impl Display for CryptoCurrencyCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -90,7 +90,7 @@ pub enum FiatCurrencyCode {
 #[cfg(not(tarpaulin))]
 impl Display for FiatCurrencyCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -104,7 +104,7 @@ pub enum CurrencyType {
 #[cfg(not(tarpaulin))]
 impl Display for CurrencyType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 

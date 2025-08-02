@@ -62,19 +62,19 @@ where
 {
     let code = String::deserialize(deserializer)?;
 
-    if let Ok(crypto) = serde_json::from_str::<CryptoCurrencyCode>(&format!("\"{}\"", code)) {
+    if let Ok(crypto) = serde_json::from_str::<CryptoCurrencyCode>(&format!("\" {code}\"")) {
         if crypto != CryptoCurrencyCode::Unknown {
             return Ok(CurrencyCode::Crypto(crypto));
         }
     }
 
-    if let Ok(fiat) = serde_json::from_str::<FiatCurrencyCode>(&format!("\"{}\"", code)) {
+    if let Ok(fiat) = serde_json::from_str::<FiatCurrencyCode>(&format!("\"{code}\"")) {
         if fiat != FiatCurrencyCode::Unknown {
             return Ok(CurrencyCode::Fiat(fiat));
         }
     }
 
-    Err(serde::de::Error::custom(format!("Invalid currency code: {}", code)))
+    Err(serde::de::Error::custom(format!("Invalid currency code: {code}")))
 }
 
 #[cfg(test)]
