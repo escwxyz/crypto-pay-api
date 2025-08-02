@@ -62,7 +62,7 @@ where
 {
     let code = String::deserialize(deserializer)?;
 
-    if let Ok(crypto) = serde_json::from_str::<CryptoCurrencyCode>(&format!("\" {code}\"")) {
+    if let Ok(crypto) = serde_json::from_str::<CryptoCurrencyCode>(&format!("\"{code}\"")) {
         if crypto != CryptoCurrencyCode::Unknown {
             return Ok(CurrencyCode::Crypto(crypto));
         }
