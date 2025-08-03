@@ -1,10 +1,10 @@
 [package]
 name = "crypto-pay-api"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "A Rust client library for Crypto Pay API provided by Telegram CryptoBot"
 license = "MIT"
-authors = ["Jie Wang <linsijia628@gmail.com>"]
+authors = ["Jie Wang <hi@jiewa.ng>"]
 repository = "https://github.com/escwxyz/cypto-pay-api"
 documentation = "https://docs.rs/cypto-pay-api"
 readme = "README.md"
@@ -26,10 +26,10 @@ thiserror = "2.0.12"
 
 [dev-dependencies]
 mockito = "1.7.0"
-axum = { version = "0.8.4"}
+axum = { version = "0.8.4" }
 tokio = { version = "1.45.1", features = ["full"] }
-tower = { version = "0.5.2"}
+tower = { version = "0.5.2" }
 
 
 [lints.rust]
- unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin)'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin)'] }
