@@ -33,7 +33,7 @@ async fn test_get_currencies_real_api() {
 
     println!("{:#?}", response);
 
-    assert!(response.len() > 0);
+    assert!(!response.is_empty());
     assert_eq!(response[0].name, "Tether");
     assert_eq!(response[0].code, CurrencyCode::Crypto(CryptoCurrencyCode::Usdt));
 }
@@ -58,7 +58,7 @@ async fn test_get_exchange_rates_real_api() {
 
     println!("{:#?}", response);
 
-    assert!(response.len() > 0);
+    assert!(!response.is_empty());
     assert_eq!(response[0].source, CryptoCurrencyCode::Usdt);
     assert_eq!(response[0].target, FiatCurrencyCode::Rub);
     assert!(response[0].rate > dec!(50));
