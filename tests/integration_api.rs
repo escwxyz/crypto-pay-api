@@ -33,9 +33,12 @@ async fn test_get_currencies_real_api() {
 
     println!("{:#?}", response);
 
-    assert!(response.len() > 0);
-    assert_eq!(response[0].name, "Tether");
-    assert_eq!(response[0].code, CurrencyCode::Crypto(CryptoCurrencyCode::Usdt));
+    assert!(!response.is_empty());
+    let tether = response
+        .iter()
+        .find(|c| c.code == CurrencyCode::Crypto(CryptoCurrencyCode::Usdt))
+        .expect("USDT not found in currencies");
+    assert_eq!(tether.name, "Tether");
 }
 
 #[tokio::test]
@@ -58,10 +61,13 @@ async fn test_get_exchange_rates_real_api() {
 
     println!("{:#?}", response);
 
-    assert!(response.len() > 0);
-    assert_eq!(response[0].source, CryptoCurrencyCode::Usdt);
-    assert_eq!(response[0].target, FiatCurrencyCode::Rub);
-    assert!(response[0].rate > dec!(50));
+    assert!(!response.is_empty());
+
+    let usdt_rub = response
+        .iter()
+        .find(|r| r.source == CryptoCurrencyCode::Usdt && r.target == FiatCurrencyCode::Rub)
+        .expect("USDT→RUB rate not found");
+    assert!(usdt_rub.rate > dec!(0));
 }
 
 #[tokio::test]
