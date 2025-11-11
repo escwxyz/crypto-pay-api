@@ -146,7 +146,9 @@ impl CryptoBot {
 
 #[cfg(test)]
 mod tests {
-    use mockito::Mock;
+    use mockito::{Matcher, Mock};
+    use reqwest::header::{HeaderName, HeaderValue};
+    use serde::{Deserialize, Serialize};
     use serde_json::json;
 
     use crate::{
@@ -156,6 +158,16 @@ mod tests {
     };
 
     use super::*;
+
+    #[derive(Debug, Serialize)]
+    struct DummyPayload {
+        value: String,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct DummyResponse {
+        stored: String,
+    }
     impl TestContext {
         pub fn mock_malformed_json_response(&mut self) -> Mock {
             self.server
@@ -407,5 +419,61 @@ mod tests {
         let result = ctx.run(async { client.get_balance().await });
 
         assert!(matches!(result, Err(CryptoBotError::HttpError(_))));
+    }
+
+    #[test]
+    fn test_make_request_with_custom_headers_and_body() {
+        let mut ctx = TestContext::new();
+
+        let _m = ctx
+            .server
+            .mock("POST", "/createInvoice")
+            .match_header("X-Custom-Header", "test-value")
+            .match_header("Crypto-Pay-Api-Token", "test")
+            .match_body(Matcher::JsonString(
+                json!({
+                    "value": "payload"
+                })
+                .to_string(),
+            ))
+            .with_header("content-type", "application/json")
+            .with_body(
+                json!({
+                    "ok": true,
+                    "result": {
+                        "stored": "payload"
+                    }
+                })
+                .to_string(),
+            )
+            .create();
+
+        let client = CryptoBot::builder()
+            .headers(vec![(
+                HeaderName::from_static("x-custom-header"),
+                HeaderValue::from_static("test-value"),
+            )])
+            .api_token("test")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let method = APIMethod {
+            endpoint: APIEndpoint::CreateInvoice,
+            method: Method::POST,
+        };
+
+        let payload = DummyPayload {
+            value: "payload".to_string(),
+        };
+
+        let result: Result<DummyResponse, _> = ctx.run(async { client.make_request(&method, Some(&payload)).await });
+
+        assert_eq!(
+            result.unwrap(),
+            DummyResponse {
+                stored: "payload".to_string()
+            }
+        );
     }
 }

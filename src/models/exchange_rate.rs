@@ -1,4 +1,4 @@
-use crate::utils::{deserialize_decimal_from_string, serialize_decimal_to_string};
+use crate::utils::{deserialize_decimal, serialize_decimal_to_string};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +17,7 @@ pub struct ExchangeRate {
     /// Fiat currency code. Currently, can be “USD”, “EUR”, “RUB”, “BYN”, “UAH”, “GBP”, “CNY”, “KZT”, “UZS”, “GEL”, “TRY”, “AMD”, “THB”, “INR”, “BRL”, “IDR”, “AZN”, “AED”, “PLN” and “ILS".
     pub target: FiatCurrencyCode,
     /// The current rate of the source asset valued in the target currency.
-    #[serde(deserialize_with = "deserialize_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_decimal")]
     #[serde(serialize_with = "serialize_decimal_to_string")]
     pub rate: Decimal, // 1 source = rate target
 }

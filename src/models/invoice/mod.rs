@@ -8,7 +8,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use super::{CryptoCurrencyCode, CurrencyType, FiatCurrencyCode, PayButtonName};
-use crate::utils::{deserialize_decimal_from_string, deserialize_optional_decimal_from_string};
+use crate::utils::{deserialize_decimal, deserialize_optional_decimal_from_string};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Invoice {
@@ -28,7 +28,7 @@ pub struct Invoice {
     pub fiat: Option<FiatCurrencyCode>,
 
     /// Amount of the invoice for which the invoice was created.
-    #[serde(deserialize_with = "deserialize_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_decimal")]
     pub amount: Decimal,
 
     /// Optional. Cryptocurrency alphabetic code for which the invoice was paid. Available only if currency_type is "crypto" and status is "paid".

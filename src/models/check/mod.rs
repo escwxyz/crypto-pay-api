@@ -7,7 +7,7 @@ pub use params::*;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use crate::utils::deserialize_decimal_from_string;
+use crate::utils::deserialize_decimal;
 
 use super::CryptoCurrencyCode;
 
@@ -23,7 +23,7 @@ pub struct Check {
     pub asset: CryptoCurrencyCode,
 
     /// Amount of the check in float.
-    #[serde(deserialize_with = "deserialize_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_decimal")]
     pub amount: Decimal,
 
     /// URL should be provided to the user to activate the check.

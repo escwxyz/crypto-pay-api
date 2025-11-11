@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use crate::utils::deserialize_decimal_from_string;
+use crate::utils::deserialize_decimal;
 
 #[derive(Debug, Deserialize)]
 pub struct Transfer {
@@ -26,7 +26,7 @@ pub struct Transfer {
     pub asset: CryptoCurrencyCode,
 
     /// Amount of the transfer in float.
-    #[serde(deserialize_with = "deserialize_decimal_from_string")]
+    #[serde(deserialize_with = "deserialize_decimal")]
     pub amount: Decimal,
 
     /// Status of the transfer, can only be “completed”.
