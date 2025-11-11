@@ -18,7 +18,6 @@ where
     }
 }
 
-
 /// Deserialize a Decimal from either a JSON number or a JSON string containing a number.
 fn deserialize_decimal_from_number_or_string<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
@@ -41,10 +40,11 @@ where
                 Err(D::Error::custom("invalid numeric value for Decimal"))
             }
         }
-        Value::String(s) => {
-            Decimal::from_str(&s).map_err(D::Error::custom)
-        }
-        other => Err(D::Error::custom(format!("unexpected JSON value for Decimal: {:?}", other))),
+        Value::String(s) => Decimal::from_str(&s).map_err(D::Error::custom),
+        other => Err(D::Error::custom(format!(
+            "unexpected JSON value for Decimal: {:?}",
+            other
+        ))),
     }
 }
 
@@ -53,7 +53,7 @@ pub fn deserialize_decimal_from_number<'de, D>(deserializer: D) -> Result<Decima
 where
     D: Deserializer<'de>,
 {
-  deserialize_decimal_from_number_or_string(deserializer)
+    deserialize_decimal_from_number_or_string(deserializer)
 }
 
 /// Deserialize a String to a Decimal
@@ -61,7 +61,7 @@ pub fn deserialize_decimal_from_string<'de, D>(deserializer: D) -> Result<Decima
 where
     D: Deserializer<'de>,
 {
-   deserialize_decimal_from_number_or_string(deserializer)
+    deserialize_decimal_from_number_or_string(deserializer)
 }
 
 /// Serialize a Decimal to a String
