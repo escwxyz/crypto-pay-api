@@ -25,7 +25,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-crypto-pay-api = "0.1.1"
+crypto-pay-api = "0.1.3"
 ```
 
 ### Basic Example with tokio
