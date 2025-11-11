@@ -83,6 +83,7 @@ pub enum FiatCurrencyCode {
     Aed,
     Pln,
     Ils,
+    Lkr,
     #[serde(other)]
     Unknown,
 }

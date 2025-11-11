@@ -1,5 +1,7 @@
 use rust_decimal::Decimal;
-use serde::{de, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer};
+use serde_json::Value;
+use std::str::FromStr;
 
 use crate::models::{CryptoCurrencyCode, CurrencyCode, FiatCurrencyCode};
 
@@ -16,14 +18,42 @@ where
     }
 }
 
+
+/// Deserialize a Decimal from either a JSON number or a JSON string containing a number.
+fn deserialize_decimal_from_number_or_string<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde::de::Error;
+
+    let v = Value::deserialize(deserializer)?;
+
+    match v {
+        Value::Number(n) => {
+            // Try to convert number to Decimal preserving integers precisely when possible.
+            if let Some(i) = n.as_i64() {
+                Ok(Decimal::from(i))
+            } else if let Some(u) = n.as_u64() {
+                Ok(Decimal::from(u))
+            } else if let Some(f) = n.as_f64() {
+                Decimal::try_from(f).map_err(D::Error::custom)
+            } else {
+                Err(D::Error::custom("invalid numeric value for Decimal"))
+            }
+        }
+        Value::String(s) => {
+            Decimal::from_str(&s).map_err(D::Error::custom)
+        }
+        other => Err(D::Error::custom(format!("unexpected JSON value for Decimal: {:?}", other))),
+    }
+}
+
 /// Deserialize a number to a Decimal
 pub fn deserialize_decimal_from_number<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
     D: Deserializer<'de>,
 {
-    use serde::de::Error;
-    let num = f64::deserialize(deserializer)?;
-    Decimal::try_from(num).map_err(D::Error::custom) // TODO
+  deserialize_decimal_from_number_or_string(deserializer)
 }
 
 /// Deserialize a String to a Decimal
@@ -31,8 +61,7 @@ pub fn deserialize_decimal_from_string<'de, D>(deserializer: D) -> Result<Decima
 where
     D: Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer)?;
-    s.parse().map_err(de::Error::custom) // TODO
+   deserialize_decimal_from_number_or_string(deserializer)
 }
 
 /// Serialize a Decimal to a String
