@@ -4,7 +4,7 @@ mod params;
 pub use builder::*;
 pub use params::*;
 
-use crate::utils::deserialize_decimal_from_number;
+use crate::utils::deserialize_decimal;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -12,11 +12,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AppStats {
     /// Total volume of paid invoices in USD.
-    #[serde(deserialize_with = "deserialize_decimal_from_number")]
+    #[serde(deserialize_with = "deserialize_decimal")]
     pub volume: Decimal,
 
     /// Conversion of all created invoices.
-    #[serde(deserialize_with = "deserialize_decimal_from_number")]
+    #[serde(deserialize_with = "deserialize_decimal")]
     pub conversion: Decimal,
 
     /// The unique number of users who have paid the invoice.

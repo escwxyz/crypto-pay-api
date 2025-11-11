@@ -1,5 +1,7 @@
 use rust_decimal::Decimal;
-use serde::{de, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer};
+use serde_json::Value;
+use std::str::FromStr;
 
 use crate::models::{CryptoCurrencyCode, CurrencyCode, FiatCurrencyCode};
 
@@ -16,23 +18,34 @@ where
     }
 }
 
-/// Deserialize a number to a Decimal
-pub fn deserialize_decimal_from_number<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
+/// Deserialize a Decimal from either a JSON number or a JSON string containing a number.
+pub fn deserialize_decimal<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
     D: Deserializer<'de>,
 {
     use serde::de::Error;
-    let num = f64::deserialize(deserializer)?;
-    Decimal::try_from(num).map_err(D::Error::custom) // TODO
-}
 
-/// Deserialize a String to a Decimal
-pub fn deserialize_decimal_from_string<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    s.parse().map_err(de::Error::custom) // TODO
+    let v = Value::deserialize(deserializer)?;
+
+    match v {
+        Value::Number(n) => {
+            // Try to convert number to Decimal preserving integers precisely when possible.
+            if let Some(i) = n.as_i64() {
+                Ok(Decimal::from(i))
+            } else if let Some(u) = n.as_u64() {
+                Ok(Decimal::from(u))
+            } else if let Some(f) = n.as_f64() {
+                Decimal::try_from(f).map_err(D::Error::custom)
+            } else {
+                Err(D::Error::custom("invalid numeric value for Decimal"))
+            }
+        }
+        Value::String(s) => Decimal::from_str(&s).map_err(D::Error::custom),
+        other => Err(D::Error::custom(format!(
+            "unexpected JSON value for Decimal: {:?}",
+            other
+        ))),
+    }
 }
 
 /// Serialize a Decimal to a String
@@ -49,7 +62,7 @@ where
     D: Deserializer<'de>,
 {
     #[derive(Deserialize)]
-    struct Helper(#[serde(deserialize_with = "deserialize_decimal_from_string")] Decimal);
+    struct Helper(#[serde(deserialize_with = "deserialize_decimal")] Decimal);
 
     let helper = Option::deserialize(deserializer)?;
     Ok(helper.map(|Helper(dec)| dec))
@@ -94,14 +107,8 @@ mod tests {
     }
 
     #[derive(Debug, Deserialize)]
-    struct TestDecimalNumber {
-        #[serde(deserialize_with = "deserialize_decimal_from_number")]
-        value: Decimal,
-    }
-
-    #[derive(Debug, Deserialize)]
-    struct TestDecimalString {
-        #[serde(deserialize_with = "deserialize_decimal_from_string")]
+    struct TestDecimalDeserialize {
+        #[serde(deserialize_with = "deserialize_decimal")]
         value: Decimal,
     }
 
@@ -141,17 +148,17 @@ mod tests {
     fn test_deserialize_decimal_from_number() {
         // Test integer
         let json = json!({"value": 42});
-        let result: TestDecimalNumber = serde_json::from_value(json).unwrap();
+        let result: TestDecimalDeserialize = serde_json::from_value(json).unwrap();
         assert_eq!(result.value, dec!(42));
 
         // Test float
         let json = json!({"value": 42.5});
-        let result: TestDecimalNumber = serde_json::from_value(json).unwrap();
+        let result: TestDecimalDeserialize = serde_json::from_value(json).unwrap();
         assert_eq!(result.value, dec!(42.5));
 
         // Test negative
         let json = json!({"value": -42.5});
-        let result: TestDecimalNumber = serde_json::from_value(json).unwrap();
+        let result: TestDecimalDeserialize = serde_json::from_value(json).unwrap();
         assert_eq!(result.value, dec!(-42.5));
     }
 
@@ -159,39 +166,54 @@ mod tests {
     fn test_deserialize_decimal_from_string() {
         // Test integer string
         let json = json!({"value": "42"});
-        let result: TestDecimalString = serde_json::from_value(json).unwrap();
+        let result: TestDecimalDeserialize = serde_json::from_value(json).unwrap();
         assert_eq!(result.value, dec!(42));
 
         // Test decimal string
         let json = json!({"value": "42.5"});
-        let result: TestDecimalString = serde_json::from_value(json).unwrap();
+        let result: TestDecimalDeserialize = serde_json::from_value(json).unwrap();
         assert_eq!(result.value, dec!(42.5));
 
         // Test negative string
         let json = json!({"value": "-42.5"});
-        let result: TestDecimalString = serde_json::from_value(json).unwrap();
+        let result: TestDecimalDeserialize = serde_json::from_value(json).unwrap();
         assert_eq!(result.value, dec!(-42.5));
 
         // Test invalid string
         let json = json!({"value": "invalid"});
-        assert!(serde_json::from_value::<TestDecimalString>(json).is_err());
+        assert!(serde_json::from_value::<TestDecimalDeserialize>(json).is_err());
+    }
+
+    #[test]
+    fn test_deserialize_decimal_from_large_unsigned_number() {
+        // Number larger than i64::MAX should fall back to u64 branch
+        let json = json!({"value": (i64::MAX as u64) + 1});
+        let result: TestDecimalDeserialize = serde_json::from_value(json).unwrap();
+        assert_eq!(result.value, Decimal::from((i64::MAX as u64) + 1));
+    }
+
+    #[test]
+    fn test_deserialize_decimal_rejects_non_numeric_types() {
+        let json = json!({"value": true});
+        let result: Result<TestDecimalDeserialize, _> = serde_json::from_value(json);
+        assert!(result.is_err());
     }
 
     #[test]
     fn test_deserialize_decimal_from_number_errors() {
         // Test number that's too large for Decimal
         let json = json!({"value": 1e100});
-        let result: Result<TestDecimalNumber, _> = serde_json::from_value(json);
+        let result: Result<TestDecimalDeserialize, _> = serde_json::from_value(json);
         assert!(result.is_err());
 
         // Test NaN
         let json = json!({"value": f64::NAN});
-        let result: Result<TestDecimalNumber, _> = serde_json::from_value(json);
+        let result: Result<TestDecimalDeserialize, _> = serde_json::from_value(json);
         assert!(result.is_err());
 
         // Test Infinity
         let json = json!({"value": f64::INFINITY});
-        let result: Result<TestDecimalNumber, _> = serde_json::from_value(json);
+        let result: Result<TestDecimalDeserialize, _> = serde_json::from_value(json);
         assert!(result.is_err());
     }
 
@@ -199,22 +221,22 @@ mod tests {
     fn test_deserialize_decimal_from_string_errors() {
         // Test invalid decimal string
         let json = json!({"value": "not_a_number"});
-        let result: Result<TestDecimalString, _> = serde_json::from_value(json);
+        let result: Result<TestDecimalDeserialize, _> = serde_json::from_value(json);
         assert!(result.is_err());
 
         // Test empty string
         let json = json!({"value": ""});
-        let result: Result<TestDecimalString, _> = serde_json::from_value(json);
+        let result: Result<TestDecimalDeserialize, _> = serde_json::from_value(json);
         assert!(result.is_err());
 
         // Test malformed decimal
         let json = json!({"value": "123.456.789"});
-        let result: Result<TestDecimalString, _> = serde_json::from_value(json);
+        let result: Result<TestDecimalDeserialize, _> = serde_json::from_value(json);
         assert!(result.is_err());
 
         // Test number out of range
         let json = json!({"value": "1e100"});
-        let result: Result<TestDecimalString, _> = serde_json::from_value(json);
+        let result: Result<TestDecimalDeserialize, _> = serde_json::from_value(json);
         assert!(result.is_err());
     }
 

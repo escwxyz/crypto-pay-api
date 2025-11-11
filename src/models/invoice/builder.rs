@@ -416,6 +416,20 @@ mod tests {
     use rust_decimal_macros::dec;
 
     use super::*;
+    use crate::models::ExchangeRate;
+
+    fn ton_usd_context() -> ValidationContext {
+        ValidationContext {
+            exchange_rates: vec![ExchangeRate {
+                is_valid: true,
+                is_crypto: true,
+                is_fiat: false,
+                source: CryptoCurrencyCode::Ton,
+                target: FiatCurrencyCode::Usd,
+                rate: dec!(2),
+            }],
+        }
+    }
 
     #[test]
     fn test_get_invoices_params_builder() {
@@ -595,6 +609,60 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_hidden_message_chars_count_validation() {
+        let builder = CreateInvoiceParamsBuilder::new()
+            .amount(dec!(100))
+            .fiat(FiatCurrencyCode::Usd)
+            .hidden_message("a".repeat(2049));
+
+        let result = builder.validate();
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                kind: ValidationErrorKind::Range,
+                field: Some(field),
+                ..
+            }) if field == "hidden_message"
+        ));
+    }
+
+    #[test]
+    fn test_payload_chars_count_validation() {
+        let builder = CreateInvoiceParamsBuilder::new()
+            .amount(dec!(100))
+            .fiat(FiatCurrencyCode::Usd)
+            .payload("a".repeat(4097));
+
+        let result = builder.validate();
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                kind: ValidationErrorKind::Range,
+                field: Some(field),
+                ..
+            }) if field == "payload"
+        ));
+    }
+
+    #[test]
+    fn test_expires_in_range_validation() {
+        let builder = CreateInvoiceParamsBuilder::new()
+            .amount(dec!(100))
+            .fiat(FiatCurrencyCode::Usd)
+            .expires_in(2_678_401);
+
+        let result = builder.validate();
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                kind: ValidationErrorKind::Range,
+                field: Some(field),
+                ..
+            }) if field == "expires_in"
+        ));
+    }
+
     #[tokio::test]
     async fn test_create_invoice_params_builder_invalid_hidden_message() {
         let client = CryptoBot::test_client();
@@ -673,6 +741,35 @@ mod tests {
                 field: Some(field),
                 ..
             }) if field == "paid_btn_url"
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_validate_with_context_success() {
+        let ctx = ton_usd_context();
+        let builder = CreateInvoiceParamsBuilder::new()
+            .amount(dec!(10))
+            .asset(CryptoCurrencyCode::Ton);
+
+        assert!(builder.validate_with_context(&ctx).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_validate_with_context_missing_exchange_rate() {
+        let ctx = ValidationContext { exchange_rates: vec![] };
+        let builder = CreateInvoiceParamsBuilder::new()
+            .amount(dec!(10))
+            .asset(CryptoCurrencyCode::Ton);
+
+        let result = builder.validate_with_context(&ctx).await;
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                kind: ValidationErrorKind::Missing,
+                field: Some(field),
+                ..
+            }) if field == "exchange_rate"
         ));
     }
 }

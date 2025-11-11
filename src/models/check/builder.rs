@@ -275,4 +275,23 @@ mod tests {
             }) if field == "amount"
         ));
     }
+
+    #[tokio::test]
+    async fn test_create_check_params_builder_missing_exchange_rate() {
+        let client = CryptoBot::test_client();
+        let result = CreateCheckParamsBuilder::new()
+            .asset(CryptoCurrencyCode::Btc)
+            .amount(Decimal::from(100))
+            .build(&client)
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                kind: ValidationErrorKind::Missing,
+                field: Some(field),
+                ..
+            }) if field == "exchange_rate"
+        ));
+    }
 }
