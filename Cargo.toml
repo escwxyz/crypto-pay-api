@@ -1,6 +1,6 @@
 [package]
 name = "crypto-pay-api"
-version = "0.1.3"
+version = "0.2.0"
 edition = "2021"
 description = "A Rust client library for Crypto Pay API provided by Telegram CryptoBot"
 license = "MIT"
