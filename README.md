@@ -17,7 +17,6 @@ A type-safe Rust client for the [Crypto Bot](https://t.me/CryptoBot) API with as
 - Zero configuration
 - Webhook support
 - Full API coverage
-- Complete test coverage
 
 ## Quick Start
 

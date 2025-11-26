@@ -356,7 +356,6 @@ impl<'a> CreateInvoiceBuilder<'a, Set, Set, Missing, Missing> {
             allow_anonymous: self.allow_anonymous,
             expires_in: self.expires_in,
         };
-
         self.client
             .make_request(
                 &APIMethod {
@@ -557,6 +556,12 @@ mod tests {
         pub fn mock_delete_invoice_response(&mut self) -> Mock {
             self.server
                 .mock("DELETE", "/deleteInvoice")
+                .match_body(Matcher::JsonString(
+                    json!({
+                        "invoice_id": 528890
+                    })
+                    .to_string(),
+                ))
                 .with_header("content-type", "application/json")
                 .with_header("Crypto-Pay-API-Token", "test_token")
                 .with_body(

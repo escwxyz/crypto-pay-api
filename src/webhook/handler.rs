@@ -440,7 +440,7 @@ mod tests {
 
     #[test]
     fn test_webhook_signature_verification() {
-        let handler = WebhookHandler::with_config("test_token", WebhookHandlerConfig::default());
+        let handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build_config());
         let body = json!({
             "update_id": 1,
             "update_type": "invoice_paid",
