@@ -448,7 +448,7 @@ impl InvoiceAPI for CryptoBot {
 
 #[cfg(test)]
 mod tests {
-    use mockito::Mock;
+    use mockito::{Matcher, Mock};
     use rust_decimal_macros::dec;
     use serde_json::json;
 
@@ -562,6 +562,93 @@ mod tests {
                     json!({
                         "ok": true,
                         "result": true
+                    })
+                    .to_string(),
+                )
+                .create()
+        }
+
+        pub fn mock_create_invoice_with_accept_asset_response(&mut self) -> Mock {
+            self.server
+                .mock("POST", "/createInvoice")
+                .match_body(Matcher::JsonString(
+                    json!({
+                        "currency_type": "crypto",
+                        "asset": "TON",
+                        "amount": "2",
+                        "accept_asset": ["TON", "USDT"],
+                        "payload": "payload",
+                        "hidden_message": "Hidden",
+                        "allow_comments": false,
+                        "allow_anonymous": true,
+                        "expires_in": 120
+                    })
+                    .to_string(),
+                ))
+                .with_header("content-type", "application/json")
+                .with_header("Crypto-Pay-API-Token", "test_token")
+                .with_body(
+                    json!({
+                        "ok": true,
+                        "result": {
+                            "invoice_id": 42,
+                            "hash": "hash",
+                            "currency_type": "crypto",
+                            "asset": "TON",
+                            "amount": "2",
+                            "pay_url": "https://t.me/CryptoTestnetBot?start=hash",
+                            "bot_invoice_url": "https://t.me/CryptoTestnetBot?start=hash",
+                            "mini_app_invoice_url": "https://t.me/CryptoTestnetBot/app?startapp=invoice-hash",
+                            "web_app_invoice_url": "https://testnet-app.send.tg/invoices/hash",
+                            "status": "active",
+                            "created_at": "2025-02-08T12:11:01.341Z",
+                            "allow_comments": false,
+                            "allow_anonymous": true
+                        }
+                    })
+                    .to_string(),
+                )
+                .create()
+        }
+
+        pub fn mock_get_invoices_response_with_filters(&mut self) -> Mock {
+            self.server
+                .mock("GET", "/getInvoices")
+                .match_body(Matcher::JsonString(
+                    json!({
+                        "asset": "TON",
+                        "fiat": "USD",
+                        "invoice_ids": "1,2",
+                        "status": "paid",
+                        "offset": 3,
+                        "count": 4
+                    })
+                    .to_string(),
+                ))
+                .with_header("content-type", "application/json")
+                .with_header("Crypto-Pay-API-Token", "test_token")
+                .with_body(
+                    json!({
+                        "ok": true,
+                        "result": {
+                            "items": [
+                                {
+                                    "invoice_id": 1,
+                                    "hash": "hash",
+                                    "currency_type": "crypto",
+                                    "asset": "TON",
+                                    "amount": "1",
+                                    "pay_url": "https://t.me/CryptoTestnetBot?start=hash",
+                                    "bot_invoice_url": "https://t.me/CryptoTestnetBot?start=hash",
+                                    "mini_app_invoice_url": "https://t.me/CryptoTestnetBot/app?startapp=invoice-hash",
+                                    "web_app_invoice_url": "https://testnet-app.send.tg/invoices/hash",
+                                    "status": "paid",
+                                    "created_at": "2025-02-08T12:11:01.341Z",
+                                    "allow_comments": true,
+                                    "allow_anonymous": true
+                                }
+                            ]
+                        }
                     })
                     .to_string(),
                 )
@@ -847,5 +934,148 @@ mod tests {
             Err(CryptoBotError::ValidationError { field, .. }) => assert_eq!(field, Some("paid_btn_url".to_string())),
             _ => panic!("Expected validation error for invalid paid_btn_url"),
         }
+    }
+
+    #[test]
+    fn test_create_invoice_rejects_hidden_message_too_long() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let message = "a".repeat(2_049);
+        let builder = client
+            .create_invoice()
+            .asset(CryptoCurrencyCode::Ton)
+            .amount(dec!(1))
+            .hidden_message(message);
+
+        let result = builder.validate();
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                field,
+                kind: ValidationErrorKind::Range,
+                ..
+            }) if field == Some("hidden_message".to_string())
+        ));
+    }
+
+    #[test]
+    fn test_create_invoice_rejects_payload_too_long() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let payload = "a".repeat(4_097);
+        let builder = client
+            .create_invoice()
+            .asset(CryptoCurrencyCode::Ton)
+            .amount(dec!(1))
+            .payload(payload);
+
+        let result = builder.validate();
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                field,
+                kind: ValidationErrorKind::Range,
+                ..
+            }) if field == Some("payload".to_string())
+        ));
+    }
+
+    #[test]
+    fn test_create_invoice_rejects_invalid_expires_in() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let builder = client
+            .create_invoice()
+            .asset(CryptoCurrencyCode::Ton)
+            .amount(dec!(1))
+            .expires_in(0);
+
+        let result = builder.validate();
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                field,
+                kind: ValidationErrorKind::Range,
+                ..
+            }) if field == Some("expires_in".to_string())
+        ));
+    }
+
+    #[test]
+    fn test_create_invoice_with_accept_asset_and_flags() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_exchange_rates_response();
+        let _m = ctx.mock_create_invoice_with_accept_asset_response();
+
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async {
+            client
+                .create_invoice()
+                .asset(CryptoCurrencyCode::Ton)
+                .amount(dec!(2))
+                .accept_asset(vec![CryptoCurrencyCode::Ton, CryptoCurrencyCode::Usdt])
+                .payload("payload")
+                .hidden_message("Hidden")
+                .allow_comments(false)
+                .allow_anonymous(true)
+                .expires_in(120)
+                .execute()
+                .await
+        });
+
+        assert!(result.is_ok());
+        let invoice = result.unwrap();
+        assert_eq!(invoice.invoice_id, 42);
+        assert!(!invoice.allow_comments);
+    }
+
+    #[test]
+    fn test_get_invoices_serializes_filters() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_get_invoices_response_with_filters();
+
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async {
+            client
+                .get_invoices()
+                .asset(CryptoCurrencyCode::Ton)
+                .fiat(FiatCurrencyCode::Usd)
+                .invoice_ids(vec![1, 2])
+                .status(InvoiceStatus::Paid)
+                .offset(3)
+                .count(4)
+                .execute()
+                .await
+        });
+
+        assert!(result.is_ok());
+        let invoices = result.unwrap();
+        assert_eq!(invoices.len(), 1);
+        assert_eq!(invoices[0].invoice_id, 1);
     }
 }

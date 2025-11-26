@@ -165,6 +165,7 @@ mod tests {
         api::MiscAPI,
         client::CryptoBot,
         models::{CryptoCurrencyCode, CurrencyCode},
+        prelude::{CryptoBotError, ValidationErrorKind},
         utils::test_utils::TestContext,
     };
 
@@ -336,5 +337,51 @@ mod tests {
         let stats = result.unwrap();
         assert_eq!(stats.volume, Decimal::from(0));
         assert_eq!(stats.conversion, Decimal::from(0));
+    }
+
+    #[test]
+    fn test_get_stats_start_date_in_future_rejected() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let future = Utc::now() + Duration::days(1);
+        let result = ctx.run(async { client.get_stats().start_at(future).execute().await });
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                field,
+                kind: ValidationErrorKind::Range,
+                ..
+            }) if field == Some("start_at".to_string())
+        ));
+    }
+
+    #[test]
+    fn test_get_stats_end_before_start_rejected() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let start = Utc::now();
+        let end = start - Duration::hours(1);
+
+        let result = ctx.run(async { client.get_stats().start_at(start).end_at(end).execute().await });
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                field,
+                kind: ValidationErrorKind::Range,
+                ..
+            }) if field == Some("end_at".to_string())
+        ));
     }
 }

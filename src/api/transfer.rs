@@ -262,7 +262,7 @@ impl TransferAPI for CryptoBot {
 
 #[cfg(test)]
 mod tests {
-    use mockito::Mock;
+    use mockito::{Matcher, Mock};
     use rust_decimal_macros::dec;
     use serde_json::json;
 
@@ -270,7 +270,9 @@ mod tests {
         api::TransferAPI,
         client::CryptoBot,
         models::{CryptoCurrencyCode, TransferStatus},
+        prelude::{CryptoBotError, ValidationErrorKind},
         utils::test_utils::TestContext,
+        validation::FieldValidate,
     };
 
     impl TestContext {
@@ -355,6 +357,79 @@ mod tests {
                 )
                 .create()
         }
+
+        pub fn mock_get_transfers_response_with_all_filters(&mut self) -> Mock {
+            self.server
+                .mock("GET", "/getTransfers")
+                .match_body(Matcher::JsonString(
+                    json!({
+                        "asset": "TON",
+                        "transfer_ids": "1,2",
+                        "spend_id": "filter_spend",
+                        "offset": 2,
+                        "count": 3
+                    })
+                    .to_string(),
+                ))
+                .with_header("content-type", "application/json")
+                .with_header("Crypto-Pay-API-Token", "test_token")
+                .with_body(
+                    json!({
+                        "ok": true,
+                        "result": {
+                            "items": [{
+                                "transfer_id": 2,
+                                "user_id": 123456789,
+                                "asset": "TON",
+                                "amount": "1.5",
+                                "status": "completed",
+                                "completed_at": "2024-03-14T12:00:00Z",
+                                "comment": "filter_comment",
+                                "spend_id": "filter_spend",
+                                "disable_send_notification": true,
+                            }]
+                        }
+                    })
+                    .to_string(),
+                )
+                .create()
+        }
+
+        pub fn mock_transfer_with_optional_fields_response(&mut self) -> Mock {
+            self.server
+                .mock("POST", "/transfer")
+                .match_body(Matcher::JsonString(
+                    json!({
+                        "user_id": 999,
+                        "asset": "TON",
+                        "amount": "2",
+                        "spend_id": "long_spend",
+                        "comment": "optional",
+                        "disable_send_notification": true
+                    })
+                    .to_string(),
+                ))
+                .with_header("content-type", "application/json")
+                .with_header("Crypto-Pay-API-Token", "test_token")
+                .with_body(
+                    json!({
+                        "ok": true,
+                        "result": {
+                            "transfer_id": 9,
+                            "user_id": 999,
+                            "asset": "TON",
+                            "amount": "2",
+                            "status": "completed",
+                            "completed_at": "2024-03-14T12:00:00Z",
+                            "comment": "optional",
+                            "spend_id": "long_spend",
+                            "disable_send_notification": true,
+                        }
+                    })
+                    .to_string(),
+                )
+                .create()
+        }
     }
 
     #[test]
@@ -432,5 +507,139 @@ mod tests {
         assert!(result.is_ok());
         let transfers = result.unwrap();
         assert_eq!(transfers.len(), 1);
+    }
+
+    #[test]
+    fn test_get_transfers_with_all_filters() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_get_transfers_response_with_all_filters();
+
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async {
+            client
+                .get_transfers()
+                .asset(CryptoCurrencyCode::Ton)
+                .transfer_ids(vec![1, 2])
+                .spend_id("filter_spend")
+                .offset(2)
+                .count(3)
+                .execute()
+                .await
+        });
+
+        assert!(result.is_ok());
+        let transfers = result.unwrap();
+        assert_eq!(transfers.len(), 1);
+    }
+
+    #[test]
+    fn test_get_transfers_invalid_count() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async { client.get_transfers().count(0).execute().await });
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                kind: ValidationErrorKind::Range,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn test_transfer_rejects_long_spend_id() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let spend_id = "a".repeat(65);
+        let builder = client
+            .transfer()
+            .user_id(1)
+            .asset(CryptoCurrencyCode::Ton)
+            .amount(dec!(1))
+            .spend_id(spend_id);
+
+        let result = builder.validate();
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                field,
+                kind: ValidationErrorKind::Range,
+                ..
+            }) if field == Some("spend_id".to_string())
+        ));
+    }
+
+    #[test]
+    fn test_transfer_rejects_long_comment() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let comment = "a".repeat(1_025);
+        let builder = client
+            .transfer()
+            .user_id(1)
+            .asset(CryptoCurrencyCode::Ton)
+            .amount(dec!(1))
+            .spend_id("spend")
+            .comment(comment);
+
+        let result = builder.validate();
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                field,
+                kind: ValidationErrorKind::Range,
+                ..
+            }) if field == Some("comment".to_string())
+        ));
+    }
+
+    #[test]
+    fn test_transfer_with_disable_notification_flag() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_exchange_rates_response();
+        let _m = ctx.mock_transfer_with_optional_fields_response();
+
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async {
+            client
+                .transfer()
+                .user_id(999)
+                .asset(CryptoCurrencyCode::Ton)
+                .amount(dec!(2))
+                .spend_id("long_spend")
+                .comment("optional")
+                .disable_send_notification(true)
+                .execute()
+                .await
+        });
+
+        assert!(result.is_ok());
+        assert!(result.is_ok());
     }
 }

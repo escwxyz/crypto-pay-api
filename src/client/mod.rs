@@ -168,6 +168,10 @@ mod tests {
     struct DummyResponse {
         stored: String,
     }
+    #[derive(Debug, Serialize)]
+    struct DeletePayload {
+        invoice_id: u64,
+    }
     impl TestContext {
         pub fn mock_malformed_json_response(&mut self) -> Mock {
             self.server
@@ -475,5 +479,44 @@ mod tests {
                 stored: "payload".to_string()
             }
         );
+    }
+
+    #[test]
+    fn test_make_request_delete_with_payload_and_headers() {
+        let mut ctx = TestContext::new();
+        let _m = ctx
+            .server
+            .mock("DELETE", "/deleteInvoice")
+            .match_header("X-Extra", "extra")
+            .match_header("Crypto-Pay-Api-Token", "test")
+            .match_body(Matcher::JsonString(
+                json!({
+                    "invoice_id": 7
+                })
+                .to_string(),
+            ))
+            .with_header("content-type", "application/json")
+            .with_body(json!({"ok": true, "result": true}).to_string())
+            .create();
+
+        let client = CryptoBot::builder()
+            .headers(vec![(
+                HeaderName::from_static("x-extra"),
+                HeaderValue::from_static("extra"),
+            )])
+            .api_token("test")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let method = APIMethod {
+            endpoint: APIEndpoint::DeleteInvoice,
+            method: Method::DELETE,
+        };
+
+        let payload = DeletePayload { invoice_id: 7 };
+
+        let result: Result<bool, _> = ctx.run(async { client.make_request(&method, Some(&payload)).await });
+        assert_eq!(result.unwrap(), true);
     }
 }

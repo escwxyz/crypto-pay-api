@@ -262,7 +262,7 @@ impl CheckAPI for CryptoBot {
 
 #[cfg(test)]
 mod tests {
-    use mockito::Mock;
+    use mockito::{Matcher, Mock};
     use rust_decimal_macros::dec;
     use serde_json::json;
 
@@ -352,6 +352,77 @@ mod tests {
                 .create()
         }
 
+        pub fn mock_get_checks_response_with_all_filters(&mut self) -> Mock {
+            self.server
+                .mock("GET", "/getChecks")
+                .match_body(Matcher::JsonString(
+                    json!({
+                        "asset": "TON",
+                        "check_ids": "1,2",
+                        "status": "active",
+                        "offset": 5,
+                        "count": 10
+                    })
+                    .to_string(),
+                ))
+                .with_header("content-type", "application/json")
+                .with_header("Crypto-Pay-API-Token", "test_token")
+                .with_body(
+                    json!({
+                        "ok": true,
+                        "result": {
+                            "items": [
+                                {
+                                    "check_id": 321,
+                                    "hash": "hash",
+                                    "asset": "TON",
+                                    "amount": "5.00",
+                                    "bot_check_url": "https://example.com/check",
+                                    "status": "active",
+                                    "created_at": "2021-01-01T00:00:00Z",
+                                    "activated_at": "2021-01-01T00:00:00Z",
+                                }
+                            ]
+                        }
+                    })
+                    .to_string(),
+                )
+                .create()
+        }
+
+        pub fn mock_create_check_with_pin_response(&mut self) -> Mock {
+            self.server
+                .mock("POST", "/createCheck")
+                .match_body(Matcher::JsonString(
+                    json!({
+                        "asset": "TON",
+                        "amount": "5",
+                        "pin_to_user_id": 99,
+                        "pin_to_username": "alice"
+                    })
+                    .to_string(),
+                ))
+                .with_header("content-type", "application/json")
+                .with_header("Crypto-Pay-API-Token", "test_token")
+                .with_body(
+                    json!({
+                        "ok": true,
+                        "result": {
+                            "check_id": 321,
+                            "hash": "hash",
+                            "asset": "TON",
+                            "amount": "5.00",
+                            "bot_check_url": "https://example.com/check",
+                            "status": "active",
+                            "created_at": "2021-01-01T00:00:00Z",
+                            "activated_at": "2021-01-01T00:00:00Z",
+                        }
+                    })
+                    .to_string(),
+                )
+                .create()
+        }
+
         pub fn mock_delete_check_response(&mut self) -> Mock {
             self.server
                 .mock("DELETE", "/deleteCheck")
@@ -432,6 +503,34 @@ mod tests {
     }
 
     #[test]
+    fn test_get_checks_with_all_filters() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_get_checks_response_with_all_filters();
+
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async {
+            client
+                .get_checks()
+                .asset(CryptoCurrencyCode::Ton)
+                .check_ids(vec![1, 2])
+                .status(CheckStatus::Active)
+                .offset(5)
+                .count(10)
+                .execute()
+                .await
+        });
+
+        assert!(result.is_ok());
+        let checks = result.unwrap();
+        assert_eq!(checks.len(), 1);
+    }
+
+    #[test]
     fn test_delete_check() {
         let mut ctx = TestContext::new();
         let _m = ctx.mock_delete_check_response();
@@ -446,5 +545,75 @@ mod tests {
 
         assert!(result.is_ok());
         assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_create_check_with_pin_targets() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_exchange_rates_response();
+        let _m = ctx.mock_create_check_with_pin_response();
+
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async {
+            client
+                .create_check()
+                .asset(CryptoCurrencyCode::Ton)
+                .amount(dec!(5))
+                .pin_to_user_id(99)
+                .pin_to_username("alice")
+                .execute()
+                .await
+        });
+
+        assert!(result.is_ok());
+        let check = result.unwrap();
+        assert_eq!(check.check_id, 321);
+    }
+
+    #[test]
+    fn test_get_checks_invalid_count() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async { client.get_checks().count(0).execute().await });
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                kind: ValidationErrorKind::Range,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn test_create_check_rejects_non_positive_amount() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let builder = client.create_check().asset(CryptoCurrencyCode::Ton).amount(dec!(0));
+        let result = builder.validate();
+
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                field,
+                kind: ValidationErrorKind::Range,
+                ..
+            }) if field == Some("amount".to_string())
+        ));
     }
 }

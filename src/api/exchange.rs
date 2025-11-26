@@ -136,4 +136,16 @@ mod tests {
         assert_eq!(exchange_rates[0].target, FiatCurrencyCode::Usd);
         assert_eq!(exchange_rates[0].rate, dec!(3.70824926));
     }
+
+    #[test]
+    fn test_get_exchange_rates_from_test_client_cache() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::test_client();
+        let result = ctx.run(async { client.get_exchange_rates().execute().await });
+
+        assert!(result.is_ok());
+        let rates = result.unwrap();
+        assert_eq!(rates.len(), 2);
+        assert_eq!(rates[0].source, CryptoCurrencyCode::Ton);
+    }
 }
