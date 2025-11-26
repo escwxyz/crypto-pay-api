@@ -40,21 +40,6 @@ impl GetTransfersParams {
     fn should_skip_transfer_ids(ids: &Option<Vec<u64>>) -> bool {
         !matches!(ids, Some(ids) if !ids.is_empty())
     }
-    // pub(crate) fn new(
-    //     asset: Option<CryptoCurrencyCode>,
-    //     transfer_ids: Option<Vec<u64>>,
-    //     spend_id: Option<String>,
-    //     offset: Option<u32>,
-    //     count: Option<u16>,
-    // ) -> Self {
-    //     Self {
-    //         asset,
-    //         transfer_ids,
-    //         spend_id,
-    //         offset,
-    //         count,
-    //     }
-    // }
 }
 
 #[derive(Debug, Serialize)]

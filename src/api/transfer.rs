@@ -185,7 +185,7 @@ impl<'a> FieldValidate for TransferBuilder<'a, Set, Set, Set, Set> {
         if self.spend_id.chars().count() > 64 {
             return Err(CryptoBotError::ValidationError {
                 kind: ValidationErrorKind::Range,
-                message: "Spend ID must be less than 64 symbols".to_string(),
+                message: "Spend ID must be at most 64 symbols".to_string(),
                 field: Some("spend_id".to_string()),
             });
         }
@@ -194,7 +194,7 @@ impl<'a> FieldValidate for TransferBuilder<'a, Set, Set, Set, Set> {
             if comment.chars().count() > 1024 {
                 return Err(CryptoBotError::ValidationError {
                     kind: ValidationErrorKind::Range,
-                    message: "Comment must be less than 1024 symbols".to_string(),
+                    message: "Comment must be at most 1024 symbols".to_string(),
                     field: Some("comment".to_string()),
                 });
             }

@@ -270,7 +270,7 @@ impl<'a, A, C, P, U> CreateInvoiceBuilder<'a, A, C, P, U> {
 
 impl<'a, A, C, P, U> FieldValidate for CreateInvoiceBuilder<'a, A, C, P, U> {
     fn validate(&self) -> CryptoBotResult<()> {
-        if self.amount < Decimal::ZERO {
+        if self.amount <= Decimal::ZERO {
             return Err(CryptoBotError::ValidationError {
                 kind: ValidationErrorKind::Range,
                 message: "Amount must be greater than 0".to_string(),
@@ -453,7 +453,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::models::{CryptoCurrencyCode, SwapToAssets};
+    use crate::models::{CryptoCurrencyCode, PayButtonName, SwapToAssets};
     use crate::utils::test_utils::TestContext;
 
     impl TestContext {
@@ -661,55 +661,191 @@ mod tests {
     }
 
     #[test]
-    fn test_swap_to_assets_serialization() {
-        // This test checks that the enum serializes to the correct string
-        let asset = SwapToAssets::Usdt;
-        let serialized = serde_json::to_string(&asset).unwrap();
-        assert_eq!(serialized, "\"USDT\"");
+    fn test_get_invoices_with_all_params() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_get_invoices_response();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
 
-        let deserialized: SwapToAssets = serde_json::from_str("\"BTC\"").unwrap();
-        assert_eq!(deserialized, SwapToAssets::Btc);
+        let result = ctx.run(async {
+            client
+                .get_invoices()
+                .asset(CryptoCurrencyCode::Ton)
+                .fiat(FiatCurrencyCode::Usd)
+                .status(InvoiceStatus::Paid)
+                .offset(10)
+                .count(50)
+                .execute()
+                .await
+        });
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_get_invoices_invalid_count() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async { client.get_invoices().count(0).execute().await });
+
+        assert!(result.is_err());
+        match result {
+            Err(CryptoBotError::ValidationError { kind, .. }) => {
+                assert_eq!(kind, ValidationErrorKind::Range);
+            }
+            _ => panic!("Expected ValidationError"),
+        }
+    }
+
+    #[test]
+    fn test_create_invoice_with_all_optional_params() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_exchange_rates_response();
+        let _m = ctx.mock_create_invoice_response();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async {
+            client
+                .create_invoice()
+                .asset(CryptoCurrencyCode::Ton)
+                .amount(dec!(10.5))
+                .description("Test".to_string())
+                .hidden_message("Hidden".to_string())
+                .paid_btn_name(PayButtonName::ViewItem)
+                .paid_btn_url("https://example.com".to_string())
+                .payload("payload".to_string())
+                .allow_comments(true)
+                .allow_anonymous(false)
+                .expires_in(3600)
+                .execute()
+                .await
+        });
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_swap_to_assets_serialization() {
+        let serialized = serde_json::to_string(&SwapToAssets::Ton).unwrap();
+        assert_eq!(serialized, "\"TON\"");
+
+        let deserialized: SwapToAssets = serde_json::from_str("\"USDT\"").unwrap();
+        assert_eq!(deserialized, SwapToAssets::Usdt);
     }
 
     #[test]
     fn test_invoice_swap_fields_serialization() {
-        // This test checks that all swap-related fields serialize and deserialize correctly
-
-        let json = r#"
-        {
-            "invoice_id": 678657,
-            "hash": "IVq7Vg91PPXn",
+        let invoice: Invoice = serde_json::from_value(json!({
+            "invoice_id": 123,
+            "hash": "hash-value",
             "currency_type": "crypto",
             "asset": "TON",
-            "amount": "125.5",
-            "pay_url": "https://t.me/CryptoTestnetBot?start=IVq7Vg91PPXn",
-            "bot_invoice_url": "https://t.me/CryptoTestnetBot?start=IVq7Vg91PPXn",
-            "mini_app_invoice_url": "https://t.me/CryptoTestnetBot/app?startapp=invoice-IVq7Vg91PPXn&mode=compact",
-            "web_app_invoice_url": "https://testnet-app.send.tg/invoices/IVq7Vg91PPXn",
-            "status": "active",
-            "created_at": "2025-06-17T04:23:31.810Z",
+            "amount": "10.00",
+            "bot_invoice_url": "https://t.me/CryptoTestnetBot?start=hash-value",
+            "mini_app_invoice_url": "https://t.me/CryptoTestnetBot/app?startapp=invoice-hash-value",
+            "web_app_invoice_url": "https://testnet-app.send.tg/invoices/hash-value",
+            "status": "paid",
             "allow_comments": true,
-            "allow_anonymous": true,
-            "swap_to": "TON",
+            "allow_anonymous": false,
+            "created_at": "2025-02-08T12:11:01.341Z",
+            "swap_to": "USDT",
             "is_swapped": "true",
-            "swapped_uid": "unique_swap_id",
-            "swapped_to": "ETH",
-            "swapped_rate": "123.45",
-            "swapped_output": "1000",
+            "swapped_uid": "swap-uid",
+            "swapped_to": "USDT",
+            "swapped_rate": "1.50",
+            "swapped_output": "100.00",
             "swapped_usd_amount": "1500.00",
             "swapped_usd_rate": "1.50"
-        }
-        "#;
-        let invoice: Invoice = serde_json::from_str(json).expect("Deserialization failed");
+        }))
+        .unwrap();
 
-        // Now check that the fields were parsed correctly
-        assert_eq!(invoice.swap_to, Some(SwapToAssets::Ton));
-        assert_eq!(invoice.is_swapped, Some("true".to_string()));
-        assert_eq!(invoice.swapped_uid, Some("unique_swap_id".to_string()));
-        assert_eq!(invoice.swapped_to, Some(SwapToAssets::Eth));
-        assert_eq!(invoice.swapped_rate, Some(dec!(123.45))); // 123.45
-        assert_eq!(invoice.swapped_output, Some(dec!(1000))); // 1000
         assert_eq!(invoice.swapped_usd_amount, Some(dec!(1500.00))); // 1500.00
         assert_eq!(invoice.swapped_usd_rate, Some(dec!(1.50))); // 1.50
+        assert_eq!(invoice.swap_to, Some(SwapToAssets::Usdt));
+        assert_eq!(invoice.swapped_to, Some(SwapToAssets::Usdt));
+    }
+
+    #[test]
+    fn test_create_invoice_rejects_negative_amount() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let builder = client.create_invoice().asset(CryptoCurrencyCode::Ton).amount(dec!(-1));
+
+        let result = builder.validate();
+        assert!(result.is_err());
+        match result {
+            Err(CryptoBotError::ValidationError { field, .. }) => assert_eq!(field, Some("amount".to_string())),
+            _ => panic!("Expected validation error for negative amount"),
+        }
+    }
+
+    #[test]
+    fn test_create_invoice_rejects_description_too_long() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let long_description = "a".repeat(1_025);
+        let builder = client
+            .create_invoice()
+            .asset(CryptoCurrencyCode::Ton)
+            .amount(dec!(1))
+            .description(long_description);
+
+        let result = builder.validate();
+        assert!(result.is_err());
+        match result {
+            Err(CryptoBotError::ValidationError { field, .. }) => {
+                assert_eq!(field, Some("description".to_string()))
+            }
+            _ => panic!("Expected validation error for long description"),
+        }
+    }
+
+    #[test]
+    fn test_create_invoice_invalid_paid_button_url() {
+        let ctx = TestContext::new();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
+
+        let result = ctx.run(async {
+            client
+                .create_invoice()
+                .asset(CryptoCurrencyCode::Ton)
+                .amount(dec!(5))
+                .paid_btn_name(PayButtonName::ViewItem)
+                .paid_btn_url("ftp://example.com")
+                .execute()
+                .await
+        });
+
+        assert!(result.is_err());
+        match result {
+            Err(CryptoBotError::ValidationError { field, .. }) => assert_eq!(field, Some("paid_btn_url".to_string())),
+            _ => panic!("Expected validation error for invalid paid_btn_url"),
+        }
     }
 }

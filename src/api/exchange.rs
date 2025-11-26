@@ -30,7 +30,7 @@ impl<'a> GetExchangeRatesBuilder<'a> {
                     endpoint: APIEndpoint::GetExchangeRates,
                     method: Method::GET,
                 },
-                None::<()>.as_ref(),
+                None::<&()>,
             )
             .await
     }

@@ -185,7 +185,7 @@ impl<'a, A, M> CreateCheckBuilder<'a, A, M> {
 
 impl<'a> FieldValidate for CreateCheckBuilder<'a, Set, Set> {
     fn validate(&self) -> CryptoBotResult<()> {
-        if self.amount < Decimal::ZERO {
+        if self.amount <= Decimal::ZERO {
             return Err(CryptoBotError::ValidationError {
                 kind: ValidationErrorKind::Range,
                 message: "Amount must be greater than 0".to_string(),

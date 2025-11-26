@@ -25,7 +25,7 @@ impl<'a> GetBalanceBuilder<'a> {
                     endpoint: APIEndpoint::GetBalance,
                     method: Method::GET,
                 },
-                None::<()>.as_ref(),
+                None::<&()>,
             )
             .await
     }

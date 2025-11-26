@@ -26,7 +26,7 @@ impl<'a> GetMeBuilder<'a> {
                     endpoint: APIEndpoint::GetMe,
                     method: Method::GET,
                 },
-                None::<()>.as_ref(),
+                None::<&()>,
             )
             .await
     }
@@ -49,7 +49,7 @@ impl<'a> GetCurrenciesBuilder<'a> {
                     endpoint: APIEndpoint::GetCurrencies,
                     method: Method::GET,
                 },
-                None::<()>.as_ref(),
+                None::<&()>,
             )
             .await
     }
@@ -216,7 +216,6 @@ mod tests {
                                 "url": "https://ton.org/",
                                 "decimals": 9
                             },
-                            // ... other currencies omitted for brevity in test ...
                         ]
                     })
                     .to_string(),
