@@ -139,13 +139,24 @@ mod tests {
 
     #[test]
     fn test_get_exchange_rates_from_test_client_cache() {
-        let ctx = TestContext::new();
         let client = CryptoBot::test_client();
-        let result = ctx.run(async { client.get_exchange_rates().execute().await });
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let result = rt.block_on(async { client.get_exchange_rates().execute().await });
 
         assert!(result.is_ok());
         let rates = result.unwrap();
         assert_eq!(rates.len(), 2);
         assert_eq!(rates[0].source, CryptoCurrencyCode::Ton);
+    }
+
+    #[test]
+    fn test_get_exchange_rates_cached_without_http() {
+        let client = CryptoBot::test_client();
+        let rt = tokio::runtime::Runtime::new().unwrap();
+
+        let result = rt.block_on(async { client.get_exchange_rates().execute().await });
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
     }
 }

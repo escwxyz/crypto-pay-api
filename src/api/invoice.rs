@@ -309,7 +309,7 @@ impl<'a, A, C, P, U> FieldValidate for CreateInvoiceBuilder<'a, A, C, P, U> {
         }
 
         if let Some(expires_in) = &self.expires_in {
-            if !(&1..=&2678400).contains(&expires_in) {
+            if !(1..=2_678_400u32).contains(expires_in) {
                 return Err(CryptoBotError::ValidationError {
                     kind: ValidationErrorKind::Range,
                     message: "expires_in_invalid".to_string(),
@@ -448,6 +448,7 @@ impl InvoiceAPI for CryptoBot {
 
 #[cfg(test)]
 mod tests {
+    use futures::executor::block_on;
     use mockito::{Matcher, Mock};
     use rust_decimal_macros::dec;
     use serde_json::json;
@@ -1077,5 +1078,29 @@ mod tests {
         let invoices = result.unwrap();
         assert_eq!(invoices.len(), 1);
         assert_eq!(invoices[0].invoice_id, 1);
+    }
+
+    #[test]
+    fn test_invoice_validate_with_context_crypto_amount() {
+        let client = CryptoBot::test_client();
+        let builder = client.create_invoice().asset(CryptoCurrencyCode::Ton).amount(dec!(5));
+        let ctx = ValidationContext {
+            exchange_rates: crate::utils::test_utils::TestContext::mock_exchange_rates(),
+        };
+
+        let result = block_on(async { builder.validate_with_context(&ctx).await });
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_invoice_validate_with_context_fiat_skips_amount_check() {
+        let client = CryptoBot::test_client();
+        let builder = client.create_invoice().fiat(FiatCurrencyCode::Usd).amount(dec!(5));
+        let ctx = ValidationContext {
+            exchange_rates: crate::utils::test_utils::TestContext::mock_exchange_rates(),
+        };
+
+        let result = block_on(async { builder.validate_with_context(&ctx).await });
+        assert!(result.is_ok());
     }
 }

@@ -517,4 +517,33 @@ mod tests {
             })
         ));
     }
+
+    #[tokio::test]
+    async fn test_handle_update_with_missing_handler_ok() {
+        let handler = WebhookHandler::with_config("test_token", WebhookHandlerConfig::default());
+
+        let json = json!({
+            "update_id": 1,
+            "update_type": "invoice_paid",
+            "request_date": Utc::now().to_rfc3339(),
+            "payload": {
+                "invoice_id": 1,
+                "hash": "hash",
+                "status": "paid",
+                "currency_type": "crypto",
+                "asset": "TON",
+                "amount": "1",
+                "bot_invoice_url": "https://t.me/CryptoTestnetBot?start=hash",
+                "mini_app_invoice_url": "https://t.me/CryptoTestnetBot/app?startapp=invoice-hash",
+                "web_app_invoice_url": "https://testnet-app.send.tg/invoices/hash",
+                "created_at": "2025-02-08T12:11:01.341Z",
+                "allow_comments": true,
+                "allow_anonymous": true
+            }
+        })
+        .to_string();
+
+        let result = handler.handle_update(&json).await;
+        assert!(result.is_ok());
+    }
 }

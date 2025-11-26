@@ -262,6 +262,7 @@ impl CheckAPI for CryptoBot {
 
 #[cfg(test)]
 mod tests {
+    use futures::executor::block_on;
     use mockito::{Matcher, Mock};
     use rust_decimal_macros::dec;
     use serde_json::json;
@@ -614,6 +615,24 @@ mod tests {
                 kind: ValidationErrorKind::Range,
                 ..
             }) if field == Some("amount".to_string())
+        ));
+    }
+
+    #[test]
+    fn test_check_validate_with_context_missing_rate() {
+        let client = CryptoBot::test_client();
+        let builder = client.create_check().asset(CryptoCurrencyCode::Btc).amount(dec!(5));
+        let ctx = ValidationContext {
+            exchange_rates: crate::utils::test_utils::TestContext::mock_exchange_rates(),
+        };
+
+        let result = block_on(async { builder.validate_with_context(&ctx).await });
+        assert!(matches!(
+            result,
+            Err(CryptoBotError::ValidationError {
+                kind: ValidationErrorKind::Missing,
+                ..
+            })
         ));
     }
 }

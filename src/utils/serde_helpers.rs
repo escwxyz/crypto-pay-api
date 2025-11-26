@@ -138,6 +138,11 @@ mod tests {
         let serialized = serde_json::to_value(&test).unwrap();
         assert_eq!(serialized["ids"], "");
 
+        // Test non-empty vec ensures skip_serializing_if doesn't trigger
+        let test = TestCommaList { ids: Some(vec![42]) };
+        let serialized = serde_json::to_value(&test).unwrap();
+        assert_eq!(serialized["ids"], "42");
+
         // Test with None (should be skipped)
         let test = TestCommaList { ids: None };
         let serialized = serde_json::to_value(&test).unwrap();
