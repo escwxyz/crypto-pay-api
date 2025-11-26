@@ -6,7 +6,7 @@ use crate::{
     utils::{serialize_comma_separated_list, serialize_decimal_to_string},
 };
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct GetTransfersParams {
     /// Optional. Cryptocurrency alphabetic code. Supported assets: “USDT”, “TON”, “BTC”, “ETH”, “LTC”, “BNB”, “TRX” and “USDC” (and “JET” for testnet).
     /// Defaults to all currencies.
@@ -39,21 +39,6 @@ pub struct GetTransfersParams {
 impl GetTransfersParams {
     fn should_skip_transfer_ids(ids: &Option<Vec<u64>>) -> bool {
         !matches!(ids, Some(ids) if !ids.is_empty())
-    }
-    pub(crate) fn new(
-        asset: Option<CryptoCurrencyCode>,
-        transfer_ids: Option<Vec<u64>>,
-        spend_id: Option<String>,
-        offset: Option<u32>,
-        count: Option<u16>,
-    ) -> Self {
-        Self {
-            asset,
-            transfer_ids,
-            spend_id,
-            offset,
-            count,
-        }
     }
 }
 

@@ -45,7 +45,7 @@ async fn webhook_middleware(
 async fn main() {
     let client = CryptoBot::builder().api_token("your_token").build().unwrap();
 
-    let mut webhook_handler = client.webhook_handler(WebhookHandlerConfigBuilder::new().build());
+    let mut webhook_handler = client.webhook_handler().build();
 
     // Register handlers
     webhook_handler.on_update(|update| async move {

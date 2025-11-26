@@ -10,8 +10,7 @@
 //! #[tokio::main]
 //! async fn main() -> Result<(), CryptoBotError> {
 //!     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build()?;
-//!     let params = CreateInvoiceParamsBuilder::new().amount(dec!(10.0)).asset(CryptoCurrencyCode::Ton).build(&client).await?;
-//!     let invoice = client.create_invoice(&params).await?;
+//!     let invoice = client.create_invoice().amount(dec!(10.0)).asset(CryptoCurrencyCode::Ton).execute().await?;
 //!     println!("Invoice created: {}", invoice.invoice_id);
 //!     Ok(())
 //! }
@@ -25,7 +24,7 @@
 //! #[tokio::main]
 //! async fn main() -> Result<(), CryptoBotError> {
 //!     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build()?;
-//!     let mut handler = client.webhook_handler(WebhookHandlerConfigBuilder::new().build());
+//!     let mut handler = client.webhook_handler().build();
 //!     handler.on_update(|update| async move {
 //!         println!("Invoice paid: {:?}", update.payload);
 //!         Ok(())

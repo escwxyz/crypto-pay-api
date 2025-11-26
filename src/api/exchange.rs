@@ -8,6 +8,34 @@ use crate::{
 
 use super::ExchangeRateAPI;
 
+pub struct GetExchangeRatesBuilder<'a> {
+    client: &'a CryptoBot,
+}
+
+impl<'a> GetExchangeRatesBuilder<'a> {
+    pub fn new(client: &'a CryptoBot) -> Self {
+        Self { client }
+    }
+
+    /// Executes the request to get current exchange rates
+    pub async fn execute(self) -> CryptoBotResult<Vec<ExchangeRate>> {
+        #[cfg(test)]
+        if let Some(rates) = &self.client.test_rates {
+            return Ok(rates.clone());
+        }
+
+        self.client
+            .make_request(
+                &APIMethod {
+                    endpoint: APIEndpoint::GetExchangeRates,
+                    method: Method::GET,
+                },
+                None::<&()>,
+            )
+            .await
+    }
+}
+
 #[async_trait]
 impl ExchangeRateAPI for CryptoBot {
     /// Gets current exchange rates for all supported cryptocurrencies
@@ -16,53 +44,9 @@ impl ExchangeRateAPI for CryptoBot {
     /// Exchange rates are updated regularly by CryptoBot.
     ///
     /// # Returns
-    /// * `Ok(Vec<ExchangeRate>)` - A list of current exchange rates
-    /// * `Err(CryptoBotError)` - If the request fails
-    ///
-    /// # Exchange Rate Pairs
-    /// Exchange rates are provided for various pairs:
-    /// * Cryptocurrency to fiat (e.g., TON/USD, BTC/EUR)
-    /// * Cryptocurrency to cryptocurrency (e.g., TON/BTC, ETH/BTC)
-    /// * Test currencies are also included in testnet mode
-    ///
-    /// # Example
-    /// ```no_run
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
-    ///     
-    ///     let rates = client.get_exchange_rates().await?;
-    ///     
-    ///     for rate in rates {
-    ///         println!("Exchange Rate: {} {} = {}",
-    ///             rate.source,
-    ///             rate.target,
-    ///             rate.rate,
-    ///         );
-    ///     }
-    ///     
-    ///     Ok(())
-    /// }
-    /// ```
-    ///
-    /// # See Also
-    /// * [ExchangeRate](struct.ExchangeRate.html) - The structure representing an exchange rate
-    async fn get_exchange_rates(&self) -> CryptoBotResult<Vec<ExchangeRate>> {
-        #[cfg(test)]
-        if let Some(rates) = &self.test_rates {
-            return Ok(rates.clone());
-        }
-
-        self.make_request(
-            &APIMethod {
-                endpoint: APIEndpoint::GetExchangeRates,
-                method: Method::GET,
-            },
-            None::<()>.as_ref(),
-        )
-        .await
+    /// * `GetExchangeRatesBuilder` - A builder to execute the request
+    fn get_exchange_rates(&self) -> GetExchangeRatesBuilder<'_> {
+        GetExchangeRatesBuilder::new(self)
     }
 }
 
@@ -140,7 +124,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_exchange_rates().await });
+        let result = ctx.run(async { client.get_exchange_rates().execute().await });
 
         println!("result: {:?}", result);
 
@@ -151,5 +135,28 @@ mod tests {
         assert_eq!(exchange_rates[0].source, CryptoCurrencyCode::Ton);
         assert_eq!(exchange_rates[0].target, FiatCurrencyCode::Usd);
         assert_eq!(exchange_rates[0].rate, dec!(3.70824926));
+    }
+
+    #[test]
+    fn test_get_exchange_rates_from_test_client_cache() {
+        let client = CryptoBot::test_client();
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let result = rt.block_on(async { client.get_exchange_rates().execute().await });
+
+        assert!(result.is_ok());
+        let rates = result.unwrap();
+        assert_eq!(rates.len(), 2);
+        assert_eq!(rates[0].source, CryptoCurrencyCode::Ton);
+    }
+
+    #[test]
+    fn test_get_exchange_rates_cached_without_http() {
+        let client = CryptoBot::test_client();
+        let rt = tokio::runtime::Runtime::new().unwrap();
+
+        let result = rt.block_on(async { client.get_exchange_rates().execute().await });
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
     }
 }

@@ -7,7 +7,7 @@ pub use handler::WebhookHandler;
 use crate::client::CryptoBot;
 
 impl CryptoBot {
-    /// Creates a new webhook handler with the given config
+    /// Creates a new webhook handler builder
     ///
     /// # Example
     /// ```no_run
@@ -18,16 +18,14 @@ impl CryptoBot {
     /// async fn main() -> Result<(), CryptoBotError> {
     ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
     ///
-    ///     let config = WebhookHandlerConfigBuilder::new()
+    ///     let webhook_handler = client.webhook_handler()
     ///         .expiration_time(Duration::from_secs(60 * 10))
     ///         .build();
-    ///
-    ///     let webhook_handler = client.webhook_handler(config);
     ///     Ok(())
     /// }
     /// ```
-    pub fn webhook_handler(&self, config: WebhookHandlerConfig) -> WebhookHandler {
-        WebhookHandler::with_config(&self.api_token, config)
+    pub fn webhook_handler(&self) -> WebhookHandlerConfigBuilder<'_> {
+        WebhookHandlerConfigBuilder::new_with_client(&self.api_token)
     }
 }
 
@@ -41,18 +39,16 @@ mod tests {
         let client = CryptoBot::test_client();
 
         // Test with default config
-        let config = WebhookHandlerConfigBuilder::new().build();
-        let handler = client.webhook_handler(config);
+        let handler = client.webhook_handler().build();
 
         assert_eq!(handler.api_token, client.api_token);
         assert_eq!(handler.config.expiration_time, Some(Duration::from_secs(600)));
 
         // Test with custom config
-        let custom_config = WebhookHandlerConfigBuilder::new()
+        let handler = client
+            .webhook_handler()
             .expiration_time(Duration::from_secs(300))
             .build();
-
-        let handler = client.webhook_handler(custom_config);
 
         assert_eq!(handler.api_token, client.api_token);
         assert_eq!(handler.config.expiration_time, Some(Duration::from_secs(300)));

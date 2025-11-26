@@ -114,7 +114,7 @@ mod tests {
         let client = builder.api_token("test").build().unwrap();
 
         // headers are only set when making requests
-        let _ = ctx.run(async { client.get_exchange_rates().await });
+        let _ = ctx.run(async { client.get_exchange_rates().execute().await });
 
         assert!(client
             .headers
