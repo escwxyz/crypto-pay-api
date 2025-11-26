@@ -8,6 +8,29 @@ use crate::{
 
 use super::BalanceAPI;
 
+pub struct GetBalanceBuilder<'a> {
+    client: &'a CryptoBot,
+}
+
+impl<'a> GetBalanceBuilder<'a> {
+    pub fn new(client: &'a CryptoBot) -> Self {
+        Self { client }
+    }
+
+    /// Executes the request to get current balance
+    pub async fn execute(self) -> Result<Vec<Balance>, CryptoBotError> {
+        self.client
+            .make_request(
+                &APIMethod {
+                    endpoint: APIEndpoint::GetBalance,
+                    method: Method::GET,
+                },
+                None::<()>.as_ref(),
+            )
+            .await
+    }
+}
+
 #[async_trait]
 impl BalanceAPI for CryptoBot {
     /// Gets current balance for all supported cryptocurrencies in your CryptoBot wallet
@@ -16,45 +39,9 @@ impl BalanceAPI for CryptoBot {
     /// available in your CryptoBot wallet, including both crypto and test currencies.
     ///
     /// # Returns
-    /// * `Ok(Vec<Balance>)` - A vector of balances for each currency
-    /// * `Err(CryptoBotError)` - If the request fails
-    ///
-    /// # Errors
-    /// This method will return an error if:
-    /// * The API request fails
-    /// * The response cannot be parsed
-    /// * The API token is invalid
-    ///
-    /// # Example
-    /// ```no_run
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
-    ///     
-    ///     let balances = client.get_balance().await?;
-    ///     
-    ///     for balance in balances {
-    ///         println!("Available: {}", balance.available);
-    ///     }
-    ///     
-    ///     Ok(())
-    /// }
-    /// ```
-    ///
-    /// # See Also
-    /// * [Balance](struct.Balance.html) - The structure representing a currency balance
-    /// * [CryptoBot API Documentation](https://help.crypt.bot/crypto-pay-api#getBalance)
-    async fn get_balance(&self) -> Result<Vec<Balance>, CryptoBotError> {
-        self.make_request(
-            &APIMethod {
-                endpoint: APIEndpoint::GetBalance,
-                method: Method::GET,
-            },
-            None::<()>.as_ref(),
-        )
-        .await
+    /// * `GetBalanceBuilder` - A builder to execute the request
+    fn get_balance(&self) -> GetBalanceBuilder<'_> {
+        GetBalanceBuilder::new(self)
     }
 }
 
@@ -107,7 +94,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_balance().await });
+        let result = ctx.run(async { client.get_balance().execute().await });
 
         assert!(result.is_ok());
         let balances = result.unwrap();

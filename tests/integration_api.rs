@@ -16,7 +16,7 @@ async fn get_client() -> CryptoBot {
 async fn test_get_me_real_api() {
     let client = get_client().await;
 
-    let response = client.get_me().await.expect("Failed to get me");
+    let response = client.get_me().execute().await.expect("Failed to get me");
 
     println!("{:#?}", response);
 
@@ -29,7 +29,11 @@ async fn test_get_me_real_api() {
 async fn test_get_currencies_real_api() {
     let client = get_client().await;
 
-    let response = client.get_currencies().await.expect("Failed to get currencies");
+    let response = client
+        .get_currencies()
+        .execute()
+        .await
+        .expect("Failed to get currencies");
 
     println!("{:#?}", response);
 
@@ -45,7 +49,7 @@ async fn test_get_currencies_real_api() {
 async fn test_get_stats_real_api() {
     let client = get_client().await;
 
-    let response = client.get_stats(None).await.expect("Failed to get stats");
+    let response = client.get_stats().execute().await.expect("Failed to get stats");
 
     println!("{:#?}", response);
 
@@ -57,7 +61,11 @@ async fn test_get_stats_real_api() {
 async fn test_get_exchange_rates_real_api() {
     let client = get_client().await;
 
-    let response = client.get_exchange_rates().await.expect("Failed to get exchange rates");
+    let response = client
+        .get_exchange_rates()
+        .execute()
+        .await
+        .expect("Failed to get exchange rates");
 
     println!("{:#?}", response);
 
@@ -75,14 +83,10 @@ async fn test_invoice_real_api() {
     let client = get_client().await;
 
     let response = client
-        .create_invoice(
-            &CreateInvoiceParamsBuilder::default()
-                .amount(dec!(125.5))
-                .asset(CryptoCurrencyCode::Ton)
-                .build(&client)
-                .await
-                .expect("Failed to create invoice params"),
-        )
+        .create_invoice()
+        .amount(dec!(125.5))
+        .asset(CryptoCurrencyCode::Ton)
+        .execute()
         .await
         .expect("Failed to create invoice");
 
@@ -93,13 +97,10 @@ async fn test_invoice_real_api() {
 
     let invoice_id = response.invoice_id;
 
-    let params = GetInvoicesParamsBuilder::default()
-        .invoice_ids(vec![invoice_id])
-        .build()
-        .expect("Failed to create invoice params");
-
     let invoices = client
-        .get_invoices(Some(&params))
+        .get_invoices()
+        .invoice_ids(vec![invoice_id])
+        .execute()
         .await
         .expect("Failed to get invoices");
 
@@ -112,6 +113,7 @@ async fn test_invoice_real_api() {
 
     let delete_response = client
         .delete_invoice(invoice_id)
+        .execute()
         .await
         .expect("Failed to delete invoice");
 

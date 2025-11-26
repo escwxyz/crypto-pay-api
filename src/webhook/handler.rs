@@ -56,7 +56,7 @@ impl WebhookHandler {
     /// #[tokio::main]
     /// async fn main() -> Result<(), CryptoBotError> {
     ///     let client = CryptoBot::builder().api_token("your_api_token").build().unwrap();
-    ///     let handler = client.webhook_handler(WebhookHandlerConfigBuilder::new().build());
+    ///     let handler = client.webhook_handler().build();
     ///     let body = r#"{"update_id": 1, "update_type": "invoice_paid"}"#;
     ///     let signature = "1234567890abcdef"; // The actual signature from the request header
     ///
@@ -157,7 +157,7 @@ impl WebhookHandler {
     /// #[tokio::main]
     /// async fn main() {
     ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
-    ///     let mut handler = client.webhook_handler(WebhookHandlerConfigBuilder::new().build());
+    ///     let mut handler = client.webhook_handler().build();
     ///
     ///     handler.on_update(|update| async move {
     ///         match (update.update_type, update.payload) {
@@ -198,7 +198,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_webhook_handler() {
-        let mut handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
+        let mut handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build_config());
 
         let received = Arc::new(Mutex::new(None));
         let received_clone = received.clone();
@@ -250,7 +250,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_webhook_handler_propagates_handler_error() {
-        let mut handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
+        let mut handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build_config());
         handler.on_update(|_| async move {
             Err(CryptoBotError::WebhookError {
                 kind: WebhookErrorKind::InvalidPayload,
@@ -293,7 +293,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_webhook_handler_invalid_request_date() {
-        let handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
+        let handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build_config());
 
         let json = json!({
             "update_id": 1,
@@ -332,7 +332,7 @@ mod tests {
     async fn test_webhook_handler_with_disabled_expiration() {
         let handler = WebhookHandler::with_config(
             "test_token",
-            WebhookHandlerConfigBuilder::new().disable_expiration().build(),
+            WebhookHandlerConfigBuilder::new().disable_expiration().build_config(),
         );
 
         let json = json!({
@@ -363,7 +363,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_default_webhook_expiration() {
-        let handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build());
+        let handler = WebhookHandler::with_config("test_token", WebhookHandlerConfigBuilder::new().build_config());
 
         let date = (Utc::now() - chrono::Duration::minutes(3)).to_rfc3339();
 
@@ -400,7 +400,7 @@ mod tests {
             "test_token",
             WebhookHandlerConfigBuilder::new()
                 .expiration_time(Duration::from_secs(60))
-                .build(),
+                .build_config(),
         );
 
         let old_date = (Utc::now() - chrono::Duration::minutes(2)).to_rfc3339();

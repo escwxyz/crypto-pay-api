@@ -1,14 +1,235 @@
 use async_trait::async_trait;
+use std::marker::PhantomData;
+
+use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 
 use crate::{
     client::CryptoBot,
-    error::CryptoBotError,
+    error::{CryptoBotError, CryptoBotResult, ValidationErrorKind},
     models::{
-        APIEndpoint, APIMethod, Check, CreateCheckParams, DeleteCheckParams, GetChecksParams, GetChecksResponse, Method,
+        APIEndpoint, APIMethod, Check, CheckStatus, CreateCheckParams, CryptoCurrencyCode, DeleteCheckParams,
+        GetChecksParams, GetChecksResponse, Method, Missing, Set,
     },
+    validation::{validate_amount, validate_count, ContextValidate, FieldValidate, ValidationContext},
 };
 
 use super::CheckAPI;
+use crate::api::ExchangeRateAPI;
+
+pub struct DeleteCheckBuilder<'a> {
+    client: &'a CryptoBot,
+    check_id: u64,
+}
+
+impl<'a> DeleteCheckBuilder<'a> {
+    pub fn new(client: &'a CryptoBot, check_id: u64) -> Self {
+        Self { client, check_id }
+    }
+
+    /// Executes the request to delete the check
+    pub async fn execute(self) -> CryptoBotResult<bool> {
+        let params = DeleteCheckParams {
+            check_id: self.check_id,
+        };
+
+        self.client
+            .make_request(
+                &APIMethod {
+                    endpoint: APIEndpoint::DeleteCheck,
+                    method: Method::DELETE,
+                },
+                Some(&params),
+            )
+            .await
+    }
+}
+
+pub struct GetChecksBuilder<'a> {
+    client: &'a CryptoBot,
+    params: GetChecksParams,
+}
+
+impl<'a> GetChecksBuilder<'a> {
+    pub fn new(client: &'a CryptoBot) -> Self {
+        Self {
+            client,
+            params: GetChecksParams::default(),
+        }
+    }
+
+    /// Set the asset for the checks.
+    /// Optional. Defaults to all currencies.
+    pub fn asset(mut self, asset: CryptoCurrencyCode) -> Self {
+        self.params.asset = Some(asset);
+        self
+    }
+
+    /// Set the check IDs for the checks.
+    pub fn check_ids(mut self, check_ids: Vec<u64>) -> Self {
+        self.params.check_ids = Some(check_ids);
+        self
+    }
+
+    /// Set the status for the checks.
+    /// Optional. Status of check to be returned.
+    /// Defaults to all statuses.
+    pub fn status(mut self, status: CheckStatus) -> Self {
+        self.params.status = Some(status);
+        self
+    }
+
+    /// Set the offset for the checks.
+    /// Optional. Offset needed to return a specific subset of check.
+    /// Defaults to 0.
+    pub fn offset(mut self, offset: u32) -> Self {
+        self.params.offset = Some(offset);
+        self
+    }
+
+    /// Set the count for the checks.
+    /// Optional. Number of check to be returned. Values between 1-1000 are accepted.
+    /// Defaults to 100.
+    pub fn count(mut self, count: u16) -> Self {
+        self.params.count = Some(count);
+        self
+    }
+
+    /// Executes the request to get checks
+    pub async fn execute(self) -> CryptoBotResult<Vec<Check>> {
+        if let Some(count) = self.params.count {
+            validate_count(count)?;
+        }
+
+        let response: GetChecksResponse = self
+            .client
+            .make_request(
+                &APIMethod {
+                    endpoint: APIEndpoint::GetChecks,
+                    method: Method::GET,
+                },
+                Some(&self.params),
+            )
+            .await?;
+
+        Ok(response.items)
+    }
+}
+
+pub struct CreateCheckBuilder<'a, A = Missing, M = Missing> {
+    client: &'a CryptoBot,
+    asset: CryptoCurrencyCode,
+    amount: Decimal,
+    pin_to_user_id: Option<u64>,
+    pin_to_username: Option<String>,
+    _state: PhantomData<(A, M)>,
+}
+
+impl<'a> CreateCheckBuilder<'a, Missing, Missing> {
+    pub fn new(client: &'a CryptoBot) -> Self {
+        Self {
+            client,
+            asset: CryptoCurrencyCode::Ton,
+            amount: dec!(0),
+            pin_to_user_id: None,
+            pin_to_username: None,
+            _state: PhantomData,
+        }
+    }
+}
+
+impl<'a, M> CreateCheckBuilder<'a, Missing, M> {
+    /// Set the asset for the check.
+    /// Cryptocurrency alphabetic code.
+    pub fn asset(mut self, asset: CryptoCurrencyCode) -> CreateCheckBuilder<'a, Set, M> {
+        self.asset = asset;
+        self.transform()
+    }
+}
+
+impl<'a, A> CreateCheckBuilder<'a, A, Missing> {
+    /// Set the amount for the check.
+    /// Amount of the check in float.
+    pub fn amount(mut self, amount: Decimal) -> CreateCheckBuilder<'a, A, Set> {
+        self.amount = amount;
+        self.transform()
+    }
+}
+
+impl<'a, A, M> CreateCheckBuilder<'a, A, M> {
+    /// Set the user ID to pin the check to.
+    /// Optional. ID of the user who will be able to activate the check.
+    pub fn pin_to_user_id(mut self, pin_to_user_id: u64) -> Self {
+        self.pin_to_user_id = Some(pin_to_user_id);
+        self
+    }
+
+    /// Set the username to pin the check to.
+    /// Optional. A user with the specified username will be able to activate the check.
+    pub fn pin_to_username(mut self, pin_to_username: &str) -> Self {
+        self.pin_to_username = Some(pin_to_username.to_string());
+        self
+    }
+
+    fn transform<A2, M2>(self) -> CreateCheckBuilder<'a, A2, M2> {
+        CreateCheckBuilder {
+            client: self.client,
+            asset: self.asset,
+            amount: self.amount,
+            pin_to_user_id: self.pin_to_user_id,
+            pin_to_username: self.pin_to_username,
+            _state: PhantomData,
+        }
+    }
+}
+
+impl<'a> FieldValidate for CreateCheckBuilder<'a, Set, Set> {
+    fn validate(&self) -> CryptoBotResult<()> {
+        if self.amount < Decimal::ZERO {
+            return Err(CryptoBotError::ValidationError {
+                kind: ValidationErrorKind::Range,
+                message: "Amount must be greater than 0".to_string(),
+                field: Some("amount".to_string()),
+            });
+        }
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl<'a> ContextValidate for CreateCheckBuilder<'a, Set, Set> {
+    async fn validate_with_context(&self, ctx: &ValidationContext) -> CryptoBotResult<()> {
+        validate_amount(&self.amount, &self.asset, ctx).await
+    }
+}
+
+impl<'a> CreateCheckBuilder<'a, Set, Set> {
+    /// Executes the request to create the check
+    pub async fn execute(self) -> CryptoBotResult<Check> {
+        self.validate()?;
+
+        let exchange_rates = self.client.get_exchange_rates().execute().await?;
+        let ctx = ValidationContext { exchange_rates };
+        self.validate_with_context(&ctx).await?;
+
+        let params = CreateCheckParams {
+            asset: self.asset,
+            amount: self.amount,
+            pin_to_user_id: self.pin_to_user_id,
+            pin_to_username: self.pin_to_username,
+        };
+
+        self.client
+            .make_request(
+                &APIMethod {
+                    endpoint: APIEndpoint::CreateCheck,
+                    method: Method::POST,
+                },
+                Some(&params),
+            )
+            .await
+    }
+}
 
 #[async_trait]
 impl CheckAPI for CryptoBot {
@@ -17,92 +238,14 @@ impl CheckAPI for CryptoBot {
     /// A check is a unique link that can be used once to transfer cryptocurrency.
     /// Anyone who opens the link first can activate the check and get the cryptocurrency.
     ///
-    /// # Arguments
-    /// * `params` - Parameters for creating a new check. See [`CreateCheckParams`] for details.
-    ///
     /// # Returns
-    /// * `Ok(Check)` - The created check
-    /// * `Err(CryptoBotError)` - If validation fails or the request fails
-    ///
-    /// # Errors
-    /// This method will return an error if:
-    /// * The parameters are invalid (e.g., negative amount)
-    /// * The currency is not supported
-    /// * The API request fails
-    /// * The exchange rate validation fails
-    ///
-    /// # Example
-    /// ```no_run
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
-    ///     
-    ///     let params = CreateCheckParamsBuilder::new()
-    ///         .asset(CryptoCurrencyCode::Ton)
-    ///         .amount(dec!(10.5))
-    ///         .build(&client).await?;
-    ///     
-    ///     let check = client.create_check(&params).await?;
-    ///     println!("Check created: {}", check.check_id);
-    ///     
-    ///     Ok(())
-    /// }
-    /// ```
-    ///
-    /// # See Also
-    /// * [Check](struct.Check.html) - The structure representing a check
-    /// * [CreateCheckParams](struct.CreateCheckParams.html) - The parameters for creating a check
-    async fn create_check(&self, params: &CreateCheckParams) -> Result<Check, CryptoBotError> {
-        self.make_request(
-            &APIMethod {
-                endpoint: APIEndpoint::CreateCheck,
-                method: Method::POST,
-            },
-            Some(params),
-        )
-        .await
+    /// * `CreateCheckBuilder` - A builder to construct the check parameters
+    fn create_check(&self) -> CreateCheckBuilder<'_> {
+        CreateCheckBuilder::new(self)
     }
 
-    /// Deletes an existing cryptocurrency check
-    ///
-    /// Once deleted, the check link will become invalid and cannot be activated.
-    ///
-    /// # Arguments
-    /// * `check_id` - The unique identifier of the check to delete
-    ///
-    /// # Returns
-    /// * `Ok(true)` - If the check was successfully deleted
-    /// * `Err(CryptoBotError)` - If the check doesn't exist or the request fails
-    ///
-    /// # Example
-    /// ```no_run
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
-    ///     
-    ///     match client.delete_check(12345).await {
-    ///         Ok(_) => println!("Check deleted successfully"),
-    ///         Err(e) => eprintln!("Failed to delete check: {}", e),
-    ///     }
-    ///     
-    ///     Ok(())
-    /// }
-    /// ```
-    async fn delete_check(&self, check_id: u64) -> Result<bool, CryptoBotError> {
-        let params = DeleteCheckParams { check_id };
-
-        self.make_request(
-            &APIMethod {
-                endpoint: APIEndpoint::DeleteCheck,
-                method: Method::DELETE,
-            },
-            Some(&params),
-        )
-        .await
+    fn delete_check(&self, check_id: u64) -> DeleteCheckBuilder<'_> {
+        DeleteCheckBuilder::new(self, check_id)
     }
 
     /// Gets a list of created cryptocurrency checks
@@ -110,60 +253,10 @@ impl CheckAPI for CryptoBot {
     /// Retrieves all checks matching the specified filter parameters.
     /// If no parameters are provided, returns all checks.
     ///
-    /// # Arguments
-    /// * `params` - Optional filter parameters. See [`GetChecksParams`] for available filters.
-    ///
     /// # Returns
-    /// * `Ok(Vec<Check>)` - List of checks matching the filter criteria
-    /// * `Err(CryptoBotError)` - If the parameters are invalid or the request fails
-    ///
-    /// # Example
-    /// ```no_run
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
-    ///     
-    ///     // Get all checks
-    ///     let all_checks = client.get_checks(None).await?;
-    ///     
-    ///     // Get checks with filters
-    ///     let params = GetChecksParamsBuilder::new()
-    ///         .asset(CryptoCurrencyCode::Ton)
-    ///         .status(CheckStatus::Active)
-    ///         .build()
-    ///         .unwrap();
-    ///     
-    ///     let filtered_checks = client.get_checks(Some(&params)).await?;
-    ///     
-    ///     for check in filtered_checks {
-    ///         println!("Check ID: {}, Amount: {}",
-    ///             check.check_id,
-    ///             check.amount,
-    ///         );
-    ///     }
-    ///     
-    ///     Ok(())
-    /// }
-    /// ```
-    ///
-    /// # See Also
-    /// * [Check](struct.Check.html) - The structure representing a check
-    /// * [GetChecksParams](struct.GetChecksParams.html) - Available filter parameters
-    /// * [CryptoBot API Documentation](https://help.crypt.bot/crypto-pay-api#getChecks)
-    async fn get_checks(&self, params: Option<&GetChecksParams>) -> Result<Vec<Check>, CryptoBotError> {
-        let response: GetChecksResponse = self
-            .make_request(
-                &APIMethod {
-                    endpoint: APIEndpoint::GetChecks,
-                    method: Method::GET,
-                },
-                params,
-            )
-            .await?;
-
-        Ok(response.items)
+    /// * `GetChecksBuilder` - A builder to construct the filter parameters
+    fn get_checks(&self) -> GetChecksBuilder<'_> {
+        GetChecksBuilder::new(self)
     }
 }
 
@@ -173,10 +266,7 @@ mod tests {
     use rust_decimal_macros::dec;
     use serde_json::json;
 
-    use crate::{
-        models::{CreateCheckParamsBuilder, CryptoCurrencyCode, GetChecksParamsBuilder},
-        utils::test_utils::TestContext,
-    };
+    use crate::{models::CryptoCurrencyCode, utils::test_utils::TestContext};
 
     use super::*;
 
@@ -285,14 +375,12 @@ mod tests {
             .unwrap();
 
         let result = ctx.run(async {
-            let params = CreateCheckParamsBuilder::new()
+            client
+                .create_check()
                 .asset(CryptoCurrencyCode::Ton)
                 .amount(dec!(10.0))
-                .build(&client)
+                .execute()
                 .await
-                .unwrap();
-
-            client.create_check(&params).await
         });
 
         assert!(result.is_ok());
@@ -314,7 +402,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_checks(None).await });
+        let result = ctx.run(async { client.get_checks().execute().await });
 
         assert!(result.is_ok());
 
@@ -334,9 +422,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let params = GetChecksParamsBuilder::new().check_ids(vec![123]).build().unwrap();
-
-        let result = ctx.run(async { client.get_checks(Some(&params)).await });
+        let result = ctx.run(async { client.get_checks().check_ids(vec![123]).execute().await });
 
         assert!(result.is_ok());
 
@@ -356,7 +442,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.delete_check(123).await });
+        let result = ctx.run(async { client.delete_check(123).execute().await });
 
         assert!(result.is_ok());
         assert!(result.unwrap());

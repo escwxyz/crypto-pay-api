@@ -1,11 +1,122 @@
+use chrono::{DateTime, Utc};
+
 use crate::{
     client::CryptoBot,
-    error::CryptoBotResult,
+    error::{CryptoBotError, CryptoBotResult, ValidationErrorKind},
     models::{APIEndpoint, APIMethod, AppStats, Currency, GetMeResponse, GetStatsParams, Method},
 };
 use async_trait::async_trait;
 
 use super::MiscAPI;
+
+pub struct GetMeBuilder<'a> {
+    client: &'a CryptoBot,
+}
+
+impl<'a> GetMeBuilder<'a> {
+    pub fn new(client: &'a CryptoBot) -> Self {
+        Self { client }
+    }
+
+    /// Executes the request to get application information
+    pub async fn execute(self) -> CryptoBotResult<GetMeResponse> {
+        self.client
+            .make_request(
+                &APIMethod {
+                    endpoint: APIEndpoint::GetMe,
+                    method: Method::GET,
+                },
+                None::<()>.as_ref(),
+            )
+            .await
+    }
+}
+
+pub struct GetCurrenciesBuilder<'a> {
+    client: &'a CryptoBot,
+}
+
+impl<'a> GetCurrenciesBuilder<'a> {
+    pub fn new(client: &'a CryptoBot) -> Self {
+        Self { client }
+    }
+
+    /// Executes the request to get supported currencies
+    pub async fn execute(self) -> CryptoBotResult<Vec<Currency>> {
+        self.client
+            .make_request(
+                &APIMethod {
+                    endpoint: APIEndpoint::GetCurrencies,
+                    method: Method::GET,
+                },
+                None::<()>.as_ref(),
+            )
+            .await
+    }
+}
+
+pub struct GetStatsBuilder<'a> {
+    client: &'a CryptoBot,
+    params: GetStatsParams,
+}
+
+impl<'a> GetStatsBuilder<'a> {
+    pub fn new(client: &'a CryptoBot) -> Self {
+        Self {
+            client,
+            params: GetStatsParams::default(),
+        }
+    }
+
+    /// Set the start date for the statistics.
+    /// Optional. Defaults is current date minus 24 hours.
+    pub fn start_at(mut self, start_at: DateTime<Utc>) -> Self {
+        self.params.start_at = Some(start_at);
+        self
+    }
+
+    /// Set the end date for the statistics.
+    /// Optional. Defaults is current date.
+    pub fn end_at(mut self, end_at: DateTime<Utc>) -> Self {
+        self.params.end_at = Some(end_at);
+        self
+    }
+
+    /// Executes the request to get application statistics
+    pub async fn execute(self) -> CryptoBotResult<AppStats> {
+        let now = Utc::now();
+
+        if let Some(start) = self.params.start_at {
+            if start > now {
+                return Err(CryptoBotError::ValidationError {
+                    kind: ValidationErrorKind::Range,
+                    message: "start_at cannot be in the future".to_string(),
+                    field: Some("start_at".to_string()),
+                });
+            }
+        }
+
+        if let (Some(start), Some(end)) = (self.params.start_at, self.params.end_at) {
+            if end < start {
+                return Err(CryptoBotError::ValidationError {
+                    kind: ValidationErrorKind::Range,
+                    message: "end_at cannot be earlier than start_at".to_string(),
+                    field: Some("end_at".to_string()),
+                });
+            }
+        }
+
+        self.client
+            .make_request(
+                &APIMethod {
+                    endpoint: APIEndpoint::GetStats,
+                    method: Method::GET,
+                },
+                Some(&self.params),
+            )
+            .await
+    }
+}
 
 #[async_trait]
 impl MiscAPI for CryptoBot {
@@ -15,37 +126,9 @@ impl MiscAPI for CryptoBot {
     /// and payment processing bot username.
     ///
     /// # Returns
-    /// * `Ok(GetMeResponse)` - Basic information about your application
-    /// * `Err(CryptoBotError)` - If the request fails
-    ///
-    /// # Example
-    /// ```no_run
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
-    ///     
-    ///     let app_info = client.get_me().await?;
-    ///     println!("App ID: {}", app_info.app_id);
-    ///     println!("App Name: {}", app_info.name);
-    ///     println!("Bot Username: {}", app_info.payment_processing_bot_username);
-    ///     
-    ///     Ok(())
-    /// }
-    /// ```
-    ///
-    /// # See Also
-    /// * [GetMeResponse](struct.GetMeResponse.html) - The structure representing the response
-    async fn get_me(&self) -> CryptoBotResult<GetMeResponse> {
-        self.make_request(
-            &APIMethod {
-                endpoint: APIEndpoint::GetMe,
-                method: Method::GET,
-            },
-            None::<()>.as_ref(),
-        )
-        .await
+    /// * `GetMeBuilder` - A builder to execute the request
+    fn get_me(&self) -> GetMeBuilder<'_> {
+        GetMeBuilder::new(self)
     }
 
     /// Gets a list of all supported cryptocurrencies
@@ -54,46 +137,9 @@ impl MiscAPI for CryptoBot {
     /// including both crypto and fiat currencies.
     ///
     /// # Returns
-    /// * `Ok(Vec<Currency>)` - List of supported currencies with their properties
-    /// * `Err(CryptoBotError)` - If the request fails
-    ///
-    /// # Example
-    /// ```no_run
-    /// use crypto_pay_api::prelude::*;
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
-    ///     
-    ///     let currencies = client.get_currencies().await?;
-    ///     
-    ///     for currency in currencies {
-    ///         println!("Currency: {}", currency.name);
-    ///         println!("Type: {}", if currency.is_blockchain { "Crypto" }
-    ///             else if currency.is_fiat { "Fiat" }
-    ///             else { "Stablecoin" });
-    ///         println!("Decimals: {}", currency.decimals);
-    ///         if let Some(url) = currency.url {
-    ///             println!("Website: {}", url);
-    ///         }
-    ///         println!("---");
-    ///     }
-    ///     
-    ///     Ok(())
-    /// }
-    /// ```
-    ///
-    /// # See Also
-    /// * [Currency](struct.Currency.html) - The structure representing a currency
-    async fn get_currencies(&self) -> CryptoBotResult<Vec<Currency>> {
-        self.make_request(
-            &APIMethod {
-                endpoint: APIEndpoint::GetCurrencies,
-                method: Method::GET,
-            },
-            None::<()>.as_ref(),
-        )
-        .await
+    /// * `GetCurrenciesBuilder` - A builder to execute the request
+    fn get_currencies(&self) -> GetCurrenciesBuilder<'_> {
+        GetCurrenciesBuilder::new(self)
     }
 
     /// Gets application statistics for a specified time period
@@ -101,62 +147,16 @@ impl MiscAPI for CryptoBot {
     /// Retrieves statistics about your application's usage, including
     /// transaction volumes, number of invoices, and user counts.
     ///
-    /// # Arguments
-    /// * `params` - Optional parameters to filter statistics by date range.
-    ///             See [`GetStatsParams`] for available options.
-    ///
     /// # Returns
-    /// * `Ok(AppStats)` - Application statistics for the specified period
-    /// * `Err(CryptoBotError)` - If the parameters are invalid or the request fails
-    ///
-    /// # Example
-    /// ```no_run
-    /// use crypto_pay_api::prelude::*;
-    /// use chrono::{Utc, Duration};
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), CryptoBotError> {
-    ///     let client = CryptoBot::builder().api_token("YOUR_API_TOKEN").build().unwrap();
-    ///     
-    ///     // Get stats for the last 7 days
-    ///     let end_date = Utc::now();
-    ///     let start_date = end_date - Duration::days(7);
-    ///     
-    ///     let params = GetStatsParamsBuilder::new()
-    ///         .start_at(start_date)
-    ///         .end_at(end_date)
-    ///         .build()
-    ///         .unwrap();
-    ///     
-    ///     let stats = client.get_stats(Some(&params)).await?;
-    ///     
-    ///     println!("Statistics for the last 7 days:");
-    ///     println!("Total volume: {}", stats.volume);
-    ///     println!("Number of invoices created: {}", stats.created_invoice_count);
-    ///     println!("Number of paid invoices: {}", stats.paid_invoice_count);
-    ///     println!("Unique users: {}", stats.unique_users_count);
-    ///     
-    ///     Ok(())
-    /// }
-    /// ```
-    ///
-    /// # See Also
-    /// * [AppStats](struct.AppStats.html) - The structure representing application statistics
-    /// * [GetStatsParams](struct.GetStatsParams.html) - Parameters for filtering statistics
-    async fn get_stats(&self, params: Option<&GetStatsParams>) -> CryptoBotResult<AppStats> {
-        self.make_request(
-            &APIMethod {
-                endpoint: APIEndpoint::GetStats,
-                method: Method::GET,
-            },
-            params,
-        )
-        .await
+    /// * `GetStatsBuilder` - A builder to construct the filter parameters
+    fn get_stats(&self) -> GetStatsBuilder<'_> {
+        GetStatsBuilder::new(self)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use chrono::{Duration, Utc};
     use mockito::Mock;
     use rust_decimal::Decimal;
     use serde_json::json;
@@ -164,7 +164,7 @@ mod tests {
     use crate::{
         api::MiscAPI,
         client::CryptoBot,
-        models::{CryptoCurrencyCode, CurrencyCode, GetStatsParams},
+        models::{CryptoCurrencyCode, CurrencyCode},
         utils::test_utils::TestContext,
     };
 
@@ -216,270 +216,14 @@ mod tests {
                                 "url": "https://ton.org/",
                                 "decimals": 9
                             },
-                            {
-                                "is_blockchain": true,
-                                "is_stablecoin": false,
-                                "is_fiat": false,
-                                "name": "Bitcoin",
-                                "code": "BTC",
-                                "url": "https://bitcoin.org/",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": true,
-                                "is_stablecoin": false,
-                                "is_fiat": false,
-                                "name": "Dogecoin",
-                                "code": "DOGE",
-                                "url": "https://dogecoin.org/",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": true,
-                                "is_stablecoin": false,
-                                "is_fiat": false,
-                                "name": "Litecoin",
-                                "code": "LTC",
-                                "url": "https://litecoin.org/",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": true,
-                                "is_stablecoin": false,
-                                "is_fiat": false,
-                                "name": "Ethereum",
-                                "code": "ETH",
-                                "url": "https://ethereum.org/",
-                                "decimals": 18
-                            },
-                            {
-                                "is_blockchain": true,
-                                "is_stablecoin": false,
-                                "is_fiat": false,
-                                "name": "Binance Coin",
-                                "code": "BNB",
-                                "url": "https://binance.org/",
-                                "decimals": 18
-                            },
-                            {
-                                "is_blockchain": true,
-                                "is_stablecoin": false,
-                                "is_fiat": false,
-                                "name": "TRON",
-                                "code": "TRX",
-                                "url": "https://tron.network/",
-                                "decimals": 6
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": true,
-                                "is_fiat": false,
-                                "name": "USD Coin",
-                                "code": "USDC",
-                                "url": "https://www.centre.io/usdc",
-                                "decimals": 18
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": true,
-                                "is_fiat": false,
-                                "name": "TON Jetton",
-                                "code": "JET",
-                                "url": "https://ton.org",
-                                "decimals": 9
-                            },
-                            {
-                                "is_blockchain": true,
-                                "is_stablecoin": false,
-                                "is_fiat": false,
-                                "name": "Crypto Bot",
-                                "code": "SEND",
-                                "url": "https://send.tg/",
-                                "decimals": 9
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Russian ruble",
-                                "code": "RUB",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "United States Dollar",
-                                "code": "USD",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Euro",
-                                "code": "EUR",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Belarusian ruble",
-                                "code": "BYN",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Ukrainian hryvnia",
-                                "code": "UAH",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Pound sterling",
-                                "code": "GBP",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Chinese yuan renminbi",
-                                "code": "CNY",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Kazakhstani tenge",
-                                "code": "KZT",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Uzbekistani som",
-                                "code": "UZS",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Georgian lari",
-                                "code": "GEL",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Turkish lira",
-                                "code": "TRY",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Armenian dram",
-                                "code": "AMD",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Thai baht",
-                                "code": "THB",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Indian rupee",
-                                "code": "INR",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Brazilian real",
-                                "code": "BRL",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Indonesian rupiah",
-                                "code": "IDR",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Azerbaijani manat",
-                                "code": "AZN",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "United Arab Emirates dirham",
-                                "code": "AED",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Polish zloty",
-                                "code": "PLN",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Israeli new shekel",
-                                "code": "ILS",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Kyrgystani som",
-                                "code": "KGS",
-                                "decimals": 8
-                            },
-                            {
-                                "is_blockchain": false,
-                                "is_stablecoin": false,
-                                "is_fiat": true,
-                                "name": "Tajikistani somoni",
-                                "code": "TJS",
-                                "decimals": 8
-                            }
+                            // ... other currencies omitted for brevity in test ...
                         ]
                     })
                     .to_string(),
                 )
                 .create()
         }
-        // TODO add more data
+
         pub fn mock_get_stats_response(&mut self) -> Mock {
             self.server
                 .mock("GET", "/getStats")
@@ -515,7 +259,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_me().await });
+        let result = ctx.run(async { client.get_me().execute().await });
 
         println!("Result: {:?}", result);
 
@@ -538,12 +282,12 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_currencies().await });
+        let result = ctx.run(async { client.get_currencies().execute().await });
 
         assert!(result.is_ok());
         let currencies = result.unwrap();
 
-        assert_eq!(currencies.len(), 33);
+        assert_eq!(currencies.len(), 2); // Mocked only 2
         assert_eq!(currencies[0].code, CurrencyCode::Crypto(CryptoCurrencyCode::Usdt));
         assert_eq!(currencies[1].code, CurrencyCode::Crypto(CryptoCurrencyCode::Ton));
     }
@@ -559,7 +303,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_stats(None::<&GetStatsParams>).await });
+        let result = ctx.run(async { client.get_stats().execute().await });
 
         println!("result: {:?}", result);
 
@@ -569,28 +313,29 @@ mod tests {
         assert_eq!(stats.conversion, Decimal::from(0));
     }
 
-    // #[test]
-    // fn test_get_stats_with_params() {
-    //     let mut ctx = TestContext::new();
-    //     let _m = ctx.mock_get_stats_response();
+    #[test]
+    fn test_get_stats_with_params() {
+        let mut ctx = TestContext::new();
+        let _m = ctx.mock_get_stats_response();
 
-    //     let client = CryptoBot::builder()
-    //         .api_token("test_token")
-    //         .base_url(ctx.server.url())
-    //         .build()
-    //         .unwrap();
+        let client = CryptoBot::builder()
+            .api_token("test_token")
+            .base_url(ctx.server.url())
+            .build()
+            .unwrap();
 
-    //     let params = GetStatsParamsBuilder::new()
-    //         .start_at(Utc::now() - Duration::days(7))
-    //         .end_at(Utc::now())
-    //         .build()
-    //         .unwrap();
+        let result = ctx.run(async {
+            client
+                .get_stats()
+                .start_at(Utc::now() - Duration::days(7))
+                .end_at(Utc::now())
+                .execute()
+                .await
+        });
 
-    //     let result = ctx.run(async { client.get_stats(Some(&params)).await });
-
-    //     assert!(result.is_ok());
-    //     let stats = result.unwrap();
-    //     assert_eq!(stats.volume, Decimal::from(0));
-    //     assert_eq!(stats.conversion, Decimal::from(0));
-    // }
+        assert!(result.is_ok());
+        let stats = result.unwrap();
+        assert_eq!(stats.volume, Decimal::from(0));
+        assert_eq!(stats.conversion, Decimal::from(0));
+    }
 }

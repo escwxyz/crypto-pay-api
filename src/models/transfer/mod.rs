@@ -1,7 +1,5 @@
-mod builder;
 mod params;
 
-pub use builder::*;
 pub use params::*;
 
 use super::CryptoCurrencyCode;

@@ -189,7 +189,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_balance().await });
+        let result = ctx.run(async { client.get_balance().execute().await });
 
         assert!(matches!(
             result,
@@ -225,7 +225,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_balance().await });
+        let result = ctx.run(async { client.get_balance().execute().await });
 
         assert!(matches!(
             result,
@@ -256,7 +256,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_balance().await });
+        let result = ctx.run(async { client.get_balance().execute().await });
 
         assert!(matches!(
             result,
@@ -316,7 +316,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_balance().await });
+        let result = ctx.run(async { client.get_balance().execute().await });
 
         assert!(matches!(
             result,
@@ -353,7 +353,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_balance().await });
+        let result = ctx.run(async { client.get_balance().execute().await });
 
         assert!(matches!(
             result,
@@ -391,7 +391,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_balance().await });
+        let result = ctx.run(async { client.get_balance().execute().await });
 
         assert!(matches!(
             result,
@@ -416,7 +416,7 @@ mod tests {
             .build()
             .unwrap();
 
-        let result = ctx.run(async { client.get_balance().await });
+        let result = ctx.run(async { client.get_balance().execute().await });
 
         assert!(matches!(result, Err(CryptoBotError::HttpError(_))));
     }
