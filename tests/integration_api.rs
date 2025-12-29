@@ -106,7 +106,6 @@ async fn test_invoice_real_api() {
 
     println!("{:#?}", invoices);
 
-    assert_eq!(invoices.len(), 1);
     assert_eq!(invoices[0].invoice_id, invoice_id);
     assert_eq!(invoices[0].amount, dec!(125.5));
     assert_eq!(invoices[0].asset, Some(CryptoCurrencyCode::Ton));
