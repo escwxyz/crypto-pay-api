@@ -42,7 +42,7 @@ async fn main() -> Result<(), CryptoBotError> {
     // Create an invoice using the builder pattern
     let invoice = client.create_invoice()
         .asset(CryptoCurrencyCode::Ton)
-        .amount(dec!(10.5))
+        .amount(10.5) // Accepts numeric literals directly
         .description("Test payment".to_string())
         .execute()
         .await?;
@@ -69,7 +69,7 @@ client.api_method()
 ```rust
 let invoice = client.create_invoice()
     .asset(CryptoCurrencyCode::Ton)
-    .amount(dec!(100.0))
+    .amount(100.0) // No need for dec!() macro
     .description("Premium subscription".to_string())
     .payload("user_123".to_string())
     .execute()
@@ -101,7 +101,7 @@ let success = client.delete_invoice(invoice_id)
 let transfer = client.transfer()
     .user_id(123456789)
     .asset(CryptoCurrencyCode::Usdt)
-    .amount(dec!(50.0))
+    .amount(50.0) // Flexible amount input
     .spend_id("unique_id_123".to_string())
     .comment("Payment for services".to_string())
     .execute()
