@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 
 use rust_decimal::Decimal;
 
+use crate::utils::types::IntoDecimal;
 use crate::{
     client::CryptoBot,
     error::{CryptoBotError, CryptoBotResult, ValidationErrorKind},
@@ -131,8 +132,8 @@ impl<'a, U, M, S> TransferBuilder<'a, U, Missing, M, S> {
 impl<'a, U, A, S> TransferBuilder<'a, U, A, Missing, S> {
     /// Set the amount for the transfer.
     /// The minimum and maximum amount limits for each of the supported assets roughly correspond to 1-25000 USD.
-    pub fn amount(mut self, amount: Decimal) -> TransferBuilder<'a, U, A, Set, S> {
-        self.amount = amount;
+    pub fn amount(mut self, amount: impl IntoDecimal) -> TransferBuilder<'a, U, A, Set, S> {
+        self.amount = amount.into_decimal();
         self.transform()
     }
 }

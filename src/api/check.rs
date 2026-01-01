@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
+use crate::utils::types::IntoDecimal;
 use crate::{
     client::CryptoBot,
     error::{CryptoBotError, CryptoBotResult, ValidationErrorKind},
@@ -150,8 +151,8 @@ impl<'a, M> CreateCheckBuilder<'a, Missing, M> {
 impl<'a, A> CreateCheckBuilder<'a, A, Missing> {
     /// Set the amount for the check.
     /// Amount of the check in float.
-    pub fn amount(mut self, amount: Decimal) -> CreateCheckBuilder<'a, A, Set> {
-        self.amount = amount;
+    pub fn amount(mut self, amount: impl IntoDecimal) -> CreateCheckBuilder<'a, A, Set> {
+        self.amount = amount.into_decimal();
         self.transform()
     }
 }

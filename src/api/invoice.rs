@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 
 use rust_decimal::Decimal;
 
+use crate::utils::types::IntoDecimal;
 use crate::{
     client::CryptoBot,
     error::{CryptoBotError, CryptoBotResult, ValidationErrorKind},
@@ -165,8 +166,8 @@ impl<'a> CreateInvoiceBuilder<'a, Missing, Missing, Missing, Missing> {
 
 impl<'a, C, P, U> CreateInvoiceBuilder<'a, Missing, C, P, U> {
     /// Set the amount for the invoice.
-    pub fn amount(mut self, amount: Decimal) -> CreateInvoiceBuilder<'a, Set, C, P, U> {
-        self.amount = amount;
+    pub fn amount(mut self, amount: impl IntoDecimal) -> CreateInvoiceBuilder<'a, Set, C, P, U> {
+        self.amount = amount.into_decimal();
         self.transform()
     }
 }
