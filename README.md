@@ -24,7 +24,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-crypto-pay-api = "0.2.0"
+crypto-pay-api = "0.2.1"
 ```
 
 ### Basic Example
@@ -46,7 +46,7 @@ async fn main() -> Result<(), CryptoBotError> {
         .description("Test payment".to_string())
         .execute()
         .await?;
-    
+
     println!("Payment URL: {}", invoice.bot_invoice_url);
 
     Ok(())
@@ -175,7 +175,7 @@ async fn main() -> Result<(), CryptoBotError> {
     let client = CryptoBot::builder()
         .api_token("YOUR_API_TOKEN")
         .build()?;
-    
+
     let mut handler = client.webhook_handler().build();
 
     // Register payment callback
