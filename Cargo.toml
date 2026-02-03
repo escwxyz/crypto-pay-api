@@ -27,7 +27,7 @@ thiserror = "2.0.17"
 [dev-dependencies]
 axum = {version = "0.8.8"}
 futures = "0.3"
-mockito = "1.7.1"
+mockito = "1.7.2"
 tokio = {version = "1.49.0", features = ["full"]}
 tower = {version = "0.5.3"}
 
