@@ -33,8 +33,9 @@ pub struct Check {
     /// Date the check was created in ISO 8601 format.
     pub created_at: DateTime<Utc>,
 
+    #[serde(default)]
     /// Date the check was activated in ISO 8601 format.
-    pub activated_at: DateTime<Utc>,
+    pub activated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
