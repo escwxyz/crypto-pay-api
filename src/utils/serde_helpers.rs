@@ -283,6 +283,10 @@ mod tests {
         let result = deserialize_currency_code(&mut serde_json::de::Deserializer::from_str("\"USD\"")).unwrap();
         assert!(matches!(result, CurrencyCode::Fiat(FiatCurrencyCode::Usd)));
 
+        // Test fiat currency added by the API after the original enum was defined
+        let result = deserialize_currency_code(&mut serde_json::de::Deserializer::from_str("\"MDL\"")).unwrap();
+        assert!(matches!(result, CurrencyCode::Fiat(FiatCurrencyCode::Mdl)));
+
         // Test invalid currency
         let result = deserialize_currency_code(&mut serde_json::de::Deserializer::from_str("\"XXX\""));
         assert!(result.is_err());
