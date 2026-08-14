@@ -24,7 +24,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-crypto-pay-api = "0.2.1"
+crypto-pay-api = "0.2.2"
 ```
 
 ### Basic Example
