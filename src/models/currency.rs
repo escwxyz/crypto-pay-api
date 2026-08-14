@@ -84,6 +84,7 @@ pub enum FiatCurrencyCode {
     Pln,
     Ils,
     Lkr,
+    Mdl,
     #[serde(other)]
     Unknown,
 }
